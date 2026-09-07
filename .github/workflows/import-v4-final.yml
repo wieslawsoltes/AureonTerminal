@@ -1,0 +1,30 @@
+name: Import verified Aureon v4 review branch
+on:
+  push:
+    branches: [transfer/v4-final]
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Decode and verify source archive
+        run: |
+          cp .github/import-v4-final/import.py "$RUNNER_TEMP/aureon-import.py"
+          python3 "$RUNNER_TEMP/aureon-import.py" decode .github/import-v4-final "$RUNNER_TEMP/aureon-changes.json"
+      - name: Materialize and validate ordered source commits
+        run: |
+          set -euo pipefail
+          git checkout --detach 01853284786388922cb475245e7c030b55f17e42
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 "$RUNNER_TEMP/aureon-import.py" apply "$RUNNER_TEMP/aureon-changes.json"
+          git log -2 --format='%h %s' >> "$GITHUB_STEP_SUMMARY"
+          git push origin HEAD:refs/heads/feature/v4

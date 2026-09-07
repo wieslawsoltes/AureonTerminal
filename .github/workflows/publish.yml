@@ -1,0 +1,144 @@
+name: Validate and publish Aureon Terminal
+
+on:
+  push:
+    branches: [main, transfer/source]
+    paths:
+      - '.github/import/**'
+      - 'package.json'
+      - 'src/**'
+      - 'server/**'
+      - 'server.mjs'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'index.html'
+      - 'styles.css'
+      - 'icon.svg'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aureon-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  import:
+    name: Import verified source snapshots
+    if: github.event_name == 'push' && github.ref == 'refs/heads/transfer/source'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Decode and verify the source archive
+        id: archive
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, lzma, os
+          from pathlib import Path, PurePosixPath
+          manifest = json.loads(Path('.github/import/manifest.json').read_text())
+          encoded = ''.join(Path('.github/import', name).read_text() for name in manifest['parts'])
+          archive = base64.b64decode(encoded, validate=True)
+          if hashlib.sha256(archive).hexdigest() != manifest['sha256']:
+              raise SystemExit('Source archive checksum mismatch')
+          snapshots = json.loads(lzma.decompress(archive))
+          root = Path(os.environ['RUNNER_TEMP']) / 'aureon-snapshots'
+          for version in ('v1', 'v2'):
+              for name, content in snapshots[version].items():
+                  path = PurePosixPath(name)
+                  if path.is_absolute() or '..' in path.parts or path.parts[0] in ('.git', '.github'):
+                      raise SystemExit('Unsafe snapshot path: ' + name)
+                  destination = root / version / path
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(content.encode('utf-8'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('base=' + manifest['base'] + '\n')
+              output.write('root=' + str(root) + '\n')
+          PY
+      - name: Create the v1 baseline and v2 upgrade commits
+        env:
+          BASE: ${{ steps.archive.outputs.base }}
+          SNAPSHOTS: ${{ steps.archive.outputs.root }}
+        run: |
+          set -euo pipefail
+          git checkout --detach "$BASE"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for version in v1 v2; do
+            rsync -a --delete --exclude=.git --exclude=.github "$SNAPSHOTS/$version/" ./
+            npm run check
+            npm run build
+            git add --all
+            if [ "$version" = v1 ]; then
+              git commit -m 'feat: import Aureon Terminal v1.0.0 baseline'
+            else
+              git commit -m 'feat: upgrade Aureon Terminal to v2.0.0'
+            fi
+            echo "$version=$(git rev-parse HEAD)" | tee -a "$RUNNER_TEMP/aureon-commits.txt"
+          done
+          git push origin HEAD:refs/heads/feature/v2
+          cat "$RUNNER_TEMP/aureon-commits.txt" >> "$GITHUB_STEP_SUMMARY"
+          git push origin --delete transfer/source
+
+  validate:
+    name: Validate source and build static client
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks and automated tests
+        run: npm run check
+      - name: Build standalone client
+        run: npm run build
+      - name: Verify committed standalone distribution
+        run: git diff --exit-code -- dist/AureonTerminal.html
+      - name: Prepare static-only Pages artifact
+        run: |
+          mkdir -p _site
+          cp dist/AureonTerminal.html _site/index.html
+          cp dist/AureonTerminal.html _site/AureonTerminal.html
+          cp icon.svg _site/icon.svg
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: _site
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: aureon-terminal-pr-${{ github.event.number }}
+          path: _site
+          retention-days: 14
+
+  deploy:
+    name: Deploy default branch to GitHub Pages
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Read Pages configuration
+        uses: actions/configure-pages@v5
+      - name: Deploy static client
+        id: deployment
+        uses: actions/deploy-pages@v4

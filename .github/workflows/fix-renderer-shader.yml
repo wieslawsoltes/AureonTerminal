@@ -1,0 +1,53 @@
+name: Verify observed renderer shader correction
+on:
+  push:
+    branches: [transfer/v43-shader-fix]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Correct reserved WGSL name and add regression
+        run: |
+          git checkout --detach 8e1e85622d55230f5fcd56e2f6456e66c5ac486f
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/renderer.js');s=p.read_text();assert s.count('input.meta')==2
+          s=s.replace('meta:vec4f','styleData:vec4f').replace('input.meta','input.styleData');p.write_text(s)
+          p=Path('tests/v43-renderer.test.js');s=p.read_text().replace('{Geometry,rgba,','{GEOMETRY_WGSL,Geometry,rgba,');s+='''
+          // This regression names the observed compiler error; actual shader compilation
+          // and execution are required separately by the SwiftShader browser suite.
+          test('WGSL instance attributes avoid the reserved metadata identifier',()=>{
+            assert.doesNotMatch(GEOMETRY_WGSL,/\\bmeta\\b/);
+            assert.match(GEOMETRY_WGSL,/@location\\(2\\) styleData:vec4f/);
+          });
+          ''';p.write_text(s)
+          p=Path('TESTING.md');s=p.read_text().replace('# Aureon Terminal v4.2 verification','# Aureon Terminal v4.3 verification').replace('**546 automated Node tests passed**','**584 automated Node tests passed**').replace('Local: 34 renderer tests','Local: 35 renderer tests').replace('(583 total)','(584 total)');s+='''
+          The initial real-device run caught a genuine WGSL compilation error: `meta`
+          was used as a field name despite being reserved. The field and both references
+          were renamed to `styleData`. The actual-device suite stays mandatory; passing
+          unit-test doubles do not replace compilation/pixel verification.
+          ''';p.write_text(s)
+          PY
+      - name: Validate exact corrected source before publishing
+        run: |
+          set -euo pipefail
+          npm run build
+          echo 'b37e96775e9172505790564e2bdc3ffe4c1af8f3f68e3619367500de4dbda25f  dist/AureonTerminal.html' | sha256sum -c -
+          npm run references
+          npm run check
+          git add --all
+          test "$(git write-tree)" = f6ae09d4c0a0925c24d32a4c3564725732692003
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: avoid reserved WGSL field name discovered by actual device tests'
+          git log -1 --format='%H %T' >> "$GITHUB_STEP_SUMMARY"
+          git push origin HEAD:refs/heads/transfer/v43-shader-output

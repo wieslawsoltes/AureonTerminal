@@ -34,10 +34,16 @@ No script, alert, imported document or normal simulation ticket calls this route
 
 ## Collaboration and persistence
 
-Rooms share explicit workspace snapshots among named members; CAS revisions reject stale overwrites. This is not CRDT editing. Private libraries/messages enforce ownership/membership; DMs require recipient opt-in, bilateral blocks deny new messages/follows, and moderation roles are operator configured. Reports and local moderation are not a staffed global abuse service.
+Rooms share explicit workspace snapshots among named members; CAS revisions reject stale overwrites. Separately joined drawing documents use an append-only operation-set CRDT. Account-prefixed actor identities and transactional membership checks prevent forged authorship; same-account devices may undo their own authored history. Drawing anchors are atomic, and bounded histories fail at capacity rather than discarding operations. Private libraries/messages enforce ownership/membership; DMs require recipient opt-in, bilateral blocks deny new messages/follows, and moderation roles are operator configured. Reports and local moderation are not a staffed global abuse service.
 
-The JSON store serializes transactions and performs file + directory fsync around atomic rename. It is **one process only**: do not mount the same state directory in multiple writers. Audit hashes detect edits/reordering while retained, not malicious deletion of an unanchored tail. No HA database, replication, guaranteed RPO or external immutable audit sink is configured.
+The JSON store serializes transactions and performs file + directory fsync around atomic rename. It is **one process only**: do not mount the same state directory in multiple writers. Audit hashes detect edits/reordering while retained, not malicious deletion of an unanchored tail. An opt-in SQLite mode uses local-filesystem WAL locks for several processes on the same host; do not use JSON mode for that configuration. SQLite transactions, durable rate buckets and fenced monitor/delivery claims are tested across processes. These are not multi-node HA, replication, guaranteed RPO or an external immutable audit sink.
 
-`node scripts/backup.mjs` provides encrypted offline backup/restore, but it cannot prove the server is stopped; the operator confirmation is mandatory. Restore goes to a new directory and never overwrites live state. Rehearse recovery before relying on it.
+`node scripts/backup.mjs` provides encrypted offline backup/restore, but it cannot prove the server is stopped; the operator confirmation is mandatory. A SQLite backup exports a committed logical snapshot, not stale migrated JSON or a raw database file missing WAL contents. Restore goes to a new directory and never overwrites live state; it restores logical JSON plus the vault key, ready for explicit SQLite migration. Rehearse recovery before relying on it.
 
 The PWA only caches the public standalone shell/icon/manifest. API paths and private data are not cached by its service worker. Existing intentional local workspace/simulation storage remains browser-local and is not a secure secrets store. Clear site data on shared machines.
+
+## Collaborative client and scripts
+
+Pending shared drawing operations use tab session storage, not encrypted secret storage. They contain drawing content and account/room identifiers, never session tokens or passwords. They are removed after acknowledgement; explicit leave flushes first. Clearing/closing the tab can destroy unacknowledged edits. Undo groups do not survive reconnect. The service worker never caches drawing APIs.
+
+Retained script handles only resolve within their execution. Validated geometry uses the chart pipeline; literal label/table text never becomes HTML. Script broker feedback comes from local confirmed-bar simulation, never the production adapter. The v4 changes do not enable, exercise or broaden real-money routing.

@@ -26,6 +26,8 @@ jobs:
           node-version: '22'
       - name: Build standalone client
         run: npm run build
+      - name: Independent product reference guard
+        run: npm run references
       - name: Syntax checks and automated tests
         run: npm run check
       - name: Verify committed standalone distribution

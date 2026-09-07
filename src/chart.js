@@ -1,3 +1,4 @@
+import {renderScriptGraphics} from './script-graphics-renderer.js';
 import {TRADE_CHART_TYPES,tradeDisplay,prepareTradeProfiles,renderProBar,renderTradeOverlay} from './chart-pro.js';
 import {computeIndicators} from './indicators.js';
 import {NON_TIME_TYPES,deriveChart,projectValues} from './chart-types.js';
@@ -172,6 +173,7 @@ export class Chart {
     this.drawExtraStudies();this.drawProfile();renderTradeOverlay(this);
     const last=this.bars[this.length-1],lastY=this.toY(last.c);if(lastY>=this.price.y&&lastY<=this.price.y+this.price.h){g.dash(0,lastY,this.plotWidth,lastY,rgba(last.c>=last.o?c.up:c.down,.55),1,4);const bg=last.c>=last.o?c.up:c.down;g.rect(this.plotWidth+1,lastY-10,81,20,rgba(bg));this.labels.push({x:this.plotWidth+8,y:lastY+1,text:formatPrice(last.c),color:'#ffffff'});}
     if(this.drawingsVisible){for(const d of this.drawings)if(!d.hidden&&(!d.intervals||d.intervals.includes(this.interval)))this.drawDrawing(d);if(this.pending)this.drawDrawing(this.pending);}
+    renderScriptGraphics(this);
     for(const m of this.markers){if(m.t>this.bars[this.length-1].t)continue;const x=this.toX(this.timeIndex(m.t)),y=this.toY(m.p);if(x>=0&&x<=this.plotWidth&&y>=this.price.y&&y<=this.price.y+this.price.h)this.labels.push({x,y:y+(m.side==='buy'?16:-14),text:m.side==='buy'?'▲':'▼',color:m.side==='buy'?c.up:c.down,align:'center'});}
     // Opaque rails mask geometry outside the plot bounds; axes labels are overlaid next.
   }
@@ -235,7 +237,7 @@ export class Chart {
   priceLabel(p){if(this.scale==='percent')return ((p/this.percentBase-1)*100).toFixed(2)+'%';return formatPrice(p);}
   timeLabel(t){const d=new Date(t*1000);return this.interval>=86400?d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:this.timezone||'UTC'}):d.getUTCHours()===0?d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:this.timezone||'UTC'}):d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:this.timezone||'UTC'});}
   overlay(){const ctx=this.ctx,c=this.colors;ctx.clearRect(0,0,this.width,this.height);ctx.font='11px "SFMono-Regular", Consolas, monospace';ctx.textBaseline='middle';
-    for(const l of this.labels||[]){ctx.fillStyle=l.color||c.text;ctx.textAlign=l.align||'left';ctx.fillText(l.text,l.x,l.y);}
+    for(const l of this.labels||[]){ctx.save();if(l.clip){ctx.beginPath();ctx.rect(l.clip.x,l.clip.y,l.clip.w,l.clip.h);ctx.clip();}if(l.size)ctx.font=l.size+'px monospace';ctx.fillStyle=l.color||c.text;ctx.textAlign=l.align||'left';ctx.fillText(l.text,l.x,l.y);ctx.restore();}
     if(!this.length)return;
     ctx.textAlign='left';
     if(this.cross&&this.cross.x>=0&&this.cross.x<=this.plotWidth&&this.cross.y>=52&&this.cross.y<=this.timeY){

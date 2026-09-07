@@ -1,0 +1,9 @@
+strategy("Position-aware crossover", overlay=true)
+fast = ta.ema(source=close, length=12)
+slow = ta.ema(source=close, length=26)
+if ta.crossover(fast, slow) and strategy.position_size == 0
+    strategy.entry("trend", strategy.long, qty=1)
+if ta.crossunder(fast, slow) and strategy.position_size > 0
+    strategy.close("trend")
+plot(fast, "Fast", color=color.aqua)
+plot(slow, "Slow", color=color.orange)

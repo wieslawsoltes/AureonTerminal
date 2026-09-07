@@ -26,3 +26,9 @@ node scripts/backup.mjs restore /private/backups/terminal.backup /private/restor
 ```
 
 Backups contain both state and MFA/VAPID key, encrypted with scrypt-derived AES-256-GCM. File creation is exclusive; restoring requires a new directory. The CLI confirmation is an operator assertion, not a cross-process locking protocol. Rehearse restore, permissions, audit verification, user sessions and provider-disabled startup before switching over. Never serve backups or `.aureon-data` as static files.
+
+## Optional same-host SQLite mode
+
+Set `AUREON_STORAGE=sqlite` explicitly to share a local data directory among Node processes on the same host. Default JSON mode remains single-process only. Keep the same public origin, vault directory and operator/provider configuration, and use distinct listen ports. WAL is not supported across hosts or network filesystems. The supplied compose file still starts one application; it does not provision a multi-node cluster or a global event bus.
+
+Back up with all writers stopped. The backup utility reads committed logical SQLite state; restore into a new directory and explicitly select the desired storage mode. Do not fall back to stale `state.json` after SQLite has become authoritative.

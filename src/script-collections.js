@@ -13,6 +13,7 @@ export class ScriptHeap {
   type(value,type='any') {
     if(type==='any')return this.safe(value);
     if(type==='float'||type==='int'){if(typeof value!=='number'||(!Number.isFinite(value)&&!Number.isNaN(value))||(type==='int'&&Number.isFinite(value)&&!Number.isInteger(value)))throw new TypeError('Expected '+type);return value;}
+    if(['line','box','label','table'].includes(type)){if(Number.isNaN(value)||typeof value==='string'&&value.startsWith('@'+type+':'))return value;throw new TypeError('Expected script '+type+' handle');}
     if(type==='bool'){if(typeof value!=='boolean')throw new TypeError('Expected bool');return value;}
     if(type==='string'||type==='color'){if(typeof value!=='string'||value.length>100000)throw new TypeError('Expected bounded string');return value;}
     if(value==null||typeof value==='number'&&Number.isNaN(value))return value;

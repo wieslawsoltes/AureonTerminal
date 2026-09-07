@@ -1,0 +1,47 @@
+name: Verify bounded adapter recovery and review fixes
+on:
+  push:
+    branches: [transfer/v43-adapter-recovery]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Decode exact reviewed patch
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,lzma,os
+          from pathlib import Path
+          raw=base64.b64decode(Path('.github/adapter-recovery.b64').read_text('ascii'),validate=True)
+          assert hashlib.sha256(raw).hexdigest()=='9d8225189642a56fb5ce4fcedffb6c2744b667719a35c6f72971b86c5072b4cc'
+          decoder=lzma.LZMADecompressor(memlimit=256*1024*1024)
+          patch=decoder.decompress(raw,max_length=29269)
+          assert decoder.eof and not decoder.unused_data and len(patch)==29268
+          assert hashlib.sha256(patch).hexdigest()=='b07313789f07f9c8a43051bb6ae2e8a9e7e758de8e45bcca1d79914d6b292f86'
+          Path(os.environ['RUNNER_TEMP'],'adapter.patch').write_bytes(patch)
+          PY
+      - name: Validate source, tests, release identity and deterministic build
+        run: |
+          set -euo pipefail
+          git checkout --detach 67c04315ad13ef25cb4243dedb65b35fa39a5a81
+          git apply --check "$RUNNER_TEMP/adapter.patch"
+          git apply "$RUNNER_TEMP/adapter.patch"
+          npm run build
+          echo '81e5237389845cae5dd88076801ed8e8bb3f1f0438e9ac0b09a52bcb4b74a874  dist/AureonTerminal.html' | sha256sum -c -
+          npm run references
+          npm run check
+          git add --all
+          test "$(git write-tree)" = 13318dde78477a5de8c5a76de333d2300cc0e0cf
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: bound transient adapter recovery and unify release identity'
+          git log -1 --format='%H %T' >> "$GITHUB_STEP_SUMMARY"
+          git push origin HEAD:refs/heads/transfer/v43-adapter-output

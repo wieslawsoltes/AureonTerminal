@@ -1,0 +1,52 @@
+name: Verify and import Aureon v4.2 source
+on:
+  push:
+    branches: [transfer/v4.2-validation]
+permissions:
+  contents: write
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reconstruct and verify exact source
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,lzma,subprocess,os
+          from pathlib import Path,PurePosixPath
+          sha=lambda b:hashlib.sha256(b).hexdigest()
+          raw=base64.b64decode(''.join(Path(f'.github/import-v42/part-{i:02d}.b64').read_text('ascii') for i in range(4)),validate=True)
+          assert sha(raw)=='788cba12a0ee2f23a4f515278db99ad84701c15f19605fb197400562dd362862'
+          dec=lzma.LZMADecompressor(memlimit=268435456); body=dec.decompress(raw,max_length=2000001)
+          assert dec.eof and not dec.unused_data and len(body)<=2000000
+          data=json.loads(body)
+          assert data['base']=='d137e03bc628333dddd360f62bc23e2fe6aa82cc'
+          assert data['tree']=='829aab15f8bb6a8efdaa78ee4949c684f0a2bc34'
+          assert data['distribution']=='6b4493062a6dbe5cb5410ab1d155ccdcd42708a7a96765da3ea9cb97ab82656f'
+          subprocess.run(['git','checkout','--detach',data['base']],check=True)
+          seen=set()
+          for item in data['files']:
+              p=PurePosixPath(item['path']); assert not p.is_absolute() and p.parts and not any(x in ('..','.git') for x in p.parts) and str(p) not in seen and not str(p).startswith('.github/')
+              seen.add(str(p)); dest=Path(p); assert not dest.is_symlink() and not any(x.is_symlink() for x in dest.parents)
+              before=dest.read_bytes() if dest.exists() else b''; assert sha(before)==item['before']; text=before.decode(); previous=0
+              for a,b,replacement in item['edits']:
+                  assert type(a) is int and type(b) is int and previous<=a<=b<=len(text) and isinstance(replacement,str); previous=b
+              for a,b,replacement in reversed(item['edits']): text=text[:a]+replacement+text[b:]
+              after=text.encode(); assert sha(after)==item['after']; dest.parent.mkdir(parents=True,exist_ok=True); dest.write_bytes(after)
+          subprocess.run(['npm','run','build'],check=True)
+          assert sha(Path('dist/AureonTerminal.html').read_bytes())==data['distribution']
+          subprocess.run(['npm','run','check'],check=True); subprocess.run(['npm','run','references'],check=True)
+          subprocess.run(['git','add','--all'],check=True)
+          tree=subprocess.check_output(['git','write-tree'],text=True).strip(); assert tree==data['tree']
+          subprocess.run(['git','-c','user.name=github-actions[bot]','-c','user.email=41898282+github-actions[bot]@users.noreply.github.com','commit','-m','feat: rolling distributions and parallel closed-bar script screening'],check=True)
+          commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          subprocess.run(['git','push','origin','HEAD:refs/heads/feature/v4.2-statistics-screening'],check=True)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out: out.write(f'Verified source commit: {commit}\n\nTree: {tree}\n')
+          print('Verified source commit:',commit,'tree:',tree)
+          PY

@@ -1,4 +1,4 @@
-name: Verify SwiftShader compositor configurations
+name: Diagnose actual WebGPU canvas presentation
 on:
   push:
     branches: [transfer/v43-adapter-diagnostics]
@@ -9,20 +9,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compositor: [default-headless, angle-headless, default-headed]
+        presentation: [idle-headless, raf-headless, idle-headed]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 62fcd4b7d9c273f638ef5a122e1a65f602448056
+          ref: 2db0ab0216f1a5be7bc3e8455263d2c57fd292b1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install browser and permitted virtual display
+      - name: Install test-only browser
         run: |
           pip install playwright
           python -m playwright install --with-deps chromium
@@ -32,19 +32,18 @@ jobs:
           with sync_playwright() as p:
             with open(os.environ['GITHUB_ENV'],'a') as out:out.write('CHROMIUM='+p.chromium.executable_path+'\n')
           PY
-      - name: Test unchanged device and pixel assertions with explicit compositor mode
+      - name: Check identical pixels with explicit scheduling and native stderr
         env:
-          COMPOSITOR: ${{ matrix.compositor }}
+          PRESENTATION: ${{ matrix.presentation }}
         run: |
           python - <<'PY'
           import os
           from pathlib import Path
           p=Path('scripts/verify-browser-v43.py');s=p.read_text()
-          start=s.index('GPU_FLAGS=');end=s.index('\n',start)
-          flags=['--enable-unsafe-webgpu','--use-webgpu-adapter=swiftshader']
-          if os.environ['COMPOSITOR']=='angle-headless':flags+=['--use-angle=swiftshader','--enable-unsafe-swiftshader']
-          s=s[:start]+'GPU_FLAGS='+repr(flags)+s[end:]
-          if os.environ['COMPOSITOR']=='default-headed':s=s.replace('headless=True','headless=False')
+          s=s.replace("png=await page.locator('#gpu-presentation-fixture').screenshot()", "await asyncio.sleep(1)\n                        print('FIXTURE',await page.evaluate('()=>{const x=rendererPresentationFixture,c=x.canvas,s=getComputedStyle(c);return{diagnostics:x.r.diagnostics(),rect:c.getBoundingClientRect().toJSON(),css:s.cssText,display:s.display,visibility:s.visibility,opacity:s.opacity,z:s.zIndex,hidden:c.hidden,top:document.elementFromPoint(16,16)?.id,body:document.body.lastElementChild===c};}'),flush=True)\n                        png=await page.locator('#gpu-presentation-fixture').screenshot()")
+          if os.environ['PRESENTATION']=='raf-headless':
+            s=s.replace('r.render(g,rgba(\'#000000\'));', "r.render(g,rgba('#000000'));const tick=()=>{if(!r.destroyed){r.render(g,rgba('#000000'));requestAnimationFrame(tick);}};requestAnimationFrame(tick);")
+          if os.environ['PRESENTATION']=='idle-headed':s=s.replace('headless=True','headless=False')
           p.write_text(s)
           PY
           mkdir -p verification/v4/renderer
@@ -52,6 +51,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: aureon-v43-compositor-${{ matrix.compositor }}
+          name: aureon-v43-presentation-${{ matrix.presentation }}
           path: verification/v4/renderer/
           retention-days: 14

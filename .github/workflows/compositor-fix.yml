@@ -1,0 +1,47 @@
+name: Verify WebGPU compositor configuration and presentation checks
+on:
+  push:
+    branches: [transfer/v43-compositor-fix]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Decode bounded source patch
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,lzma,os
+          from pathlib import Path
+          raw=base64.b64decode(Path('.github/compositor-patch.b64').read_text('ascii'),validate=True)
+          assert hashlib.sha256(raw).hexdigest()=='67e4d08c64012c6b5db33fb413ae83c8d0f33385eb35bd4f49c32ec68ce56357'
+          decoder=lzma.LZMADecompressor(memlimit=256*1024*1024)
+          patch=decoder.decompress(raw,max_length=6456)
+          assert decoder.eof and not decoder.unused_data and len(patch)==6455
+          assert hashlib.sha256(patch).hexdigest()=='7fecf1acce38e419dd56c83fb2b01ae8f42bd89c9fded7a27a0fbbdc4ae25cd8'
+          Path(os.environ['RUNNER_TEMP'],'compositor.patch').write_bytes(patch)
+          PY
+      - name: Verify source identity, regression tests and build
+        run: |
+          set -euo pipefail
+          git checkout --detach 62fcd4b7d9c273f638ef5a122e1a65f602448056
+          git apply --check "$RUNNER_TEMP/compositor.patch"
+          git apply "$RUNNER_TEMP/compositor.patch"
+          npm run build
+          echo '81e5237389845cae5dd88076801ed8e8bb3f1f0438e9ac0b09a52bcb4b74a874  dist/AureonTerminal.html' | sha256sum -c -
+          npm run references
+          npm run check
+          git add --all
+          test "$(git write-tree)" = 3d83e79ddd273c657d2e1bbe058c316d843f8417
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test: fix CI compositor configuration and assert visible WebGPU pixels'
+          git log -1 --format='%H %T' >> "$GITHUB_STEP_SUMMARY"
+          git push origin HEAD:refs/heads/transfer/v43-compositor-output

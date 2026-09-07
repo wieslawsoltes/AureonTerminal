@@ -1,0 +1,56 @@
+name: Verify and publish renderer review branch
+on:
+  push:
+    branches: [transfer/v4.3-verified-renderer]
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify complete three-part source patch
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, lzma, os
+          from pathlib import Path
+          raw = base64.b64decode(''.join(Path(f'.github/import-v43/part-{i:02d}.b64').read_text('ascii') for i in range(3)), validate=True)
+          assert hashlib.sha256(raw).hexdigest() == 'c20674295fc570ce843e35aaf4438db12456e0b1fa80d38ab7a4e9c75659c294', 'Compressed patch digest differs'
+          stream = lzma.LZMADecompressor(memlimit=256*1024*1024)
+          patch = stream.decompress(raw, max_length=1_000_001)
+          assert stream.eof and not stream.unused_data and len(patch) == 100066, 'Incomplete or oversized patch'
+          assert hashlib.sha256(patch).hexdigest() == '4ca3ab3cc2c7efc04342af9f0005deb951c5eab635ffc08b08c7e3c97b6c432a', 'Source patch digest differs'
+          Path(os.environ['RUNNER_TEMP'], 'renderer.patch').write_bytes(patch)
+          PY
+      - name: Apply exact source and verify tests, build and Git tree
+        run: |
+          set -euo pipefail
+          git checkout --detach 30947d2bd7c4e28cfe60f0bd8f73efb6816efae1
+          git apply --check "$RUNNER_TEMP/renderer.patch"
+          git apply "$RUNNER_TEMP/renderer.patch"
+          npm run build
+          echo '059af730cdab3a56af5f0c194063c1a22b9d3b89fa7f11f6a0259fad4d7aeade  dist/AureonTerminal.html' | sha256sum -c -
+          npm run references
+          npm run check
+          git add --all
+          test "$(git write-tree)" = f87adf72b1715e8acb35bdd8940c388822055e2e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: resilient GPU lifecycle, bounded geometry and renderer diagnostics'
+          git log -1 --format='%H %T %s' | tee "$RUNNER_TEMP/renderer-source-identity.txt" >> "$GITHUB_STEP_SUMMARY"
+          git archive --format=zip -o "$RUNNER_TEMP/aureon-v43-source.zip" HEAD
+          git push origin HEAD:refs/heads/feature/v4.3-renderer-reliability
+      - name: Preserve verified implementation source
+        uses: actions/upload-artifact@v4
+        with:
+          name: aureon-v43-verified-source
+          path: |
+            ${{ runner.temp }}/renderer-source-identity.txt
+            ${{ runner.temp }}/aureon-v43-source.zip
+          retention-days: 14

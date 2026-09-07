@@ -1,4 +1,4 @@
-name: Inspect actual WebGPU adapter availability
+name: Inspect actual WebGPU device lifetime
 on:
   push:
     branches: [transfer/v43-adapter-diagnostics]
@@ -6,12 +6,16 @@ permissions:
   contents: read
 jobs:
   diagnostics:
+    strategy:
+      fail-fast: false
+      matrix:
+        disposal: [immediate, idle]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 67c04315ad13ef25cb4243dedb65b35fa39a5a81
+          ref: 62fcd4b7d9c273f638ef5a122e1a65f602448056
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -28,19 +32,34 @@ jobs:
           with sync_playwright() as p:
             with open(os.environ['GITHUB_ENV'],'a') as out:out.write('CHROMIUM='+p.chromium.executable_path+'\n')
           PY
-      - name: Capture browser warnings and exact failed lifecycle states
+      - name: Trace devices and test idle destruction without relaxing assertions
+        env:
+          DISPOSAL: ${{ matrix.disposal }}
         run: |
           python - <<'PY'
+          import os
           from pathlib import Path
           p=Path('scripts/verify-browser-v43.py');s=p.read_text()
-          s=s.replace("page.on('pageerror',lambda e:errors.append(str(e)))", "page.on('pageerror',lambda e:errors.append(str(e)));page.on('console',lambda m:print('BROWSER',m.type,m.text,flush=True))")
-          s=s.replace("throw Error('Recovery failed')", "throw Error('Recovery failed: '+JSON.stringify([a.diagnostics(),b.diagnostics()]))")
+          hook="""() => {
+            const devices=new WeakMap();let next=0;
+            const request=GPUAdapter.prototype.requestDevice;
+            GPUAdapter.prototype.requestDevice=async function(...args){const d=await request.apply(this,args),id=++next;devices.set(d,id);console.warn('DEVICE acquire '+id);d.lost.then(info=>console.warn('DEVICE lost '+id+' '+JSON.stringify({reason:info.reason,message:info.message})));return d;};
+            const destroy=GPUDevice.prototype.destroy;
+            GPUDevice.prototype.destroy=function(){console.warn('DEVICE destroy '+devices.get(this)+' main='+(this===globalThis.aureon?.app?.chart?.renderer?.device)+' '+new Error().stack);return destroy.call(this);};
+          }"""
+          s=s.replace("for i in range(60):", "await page.add_init_script("+repr(hook)+")\n                for i in range(60):")
+          if os.environ['DISPOSAL']=='idle':
+            s=s.replace('const old=a.device;old.destroy();','const old=a.device;await old.queue.onSubmittedWorkDone();old.destroy();')
+            r=Path('src/renderer.js');t=r.read_text().replace('const record={device,gpu,','const record={adapter,device,gpu,')
+            t=t.replace('pending?.then(record=>release(record.device),()=>{});', 'pending?.then(async record=>{try{await record.device.queue.onSubmittedWorkDone();}catch{}release(record.device);},()=>{});')
+            r.write_text(t)
           p.write_text(s)
           PY
-          python scripts/verify-browser-v43.py
+          mkdir -p verification/v4/renderer
+          DEBUG=pw:browser python scripts/verify-browser-v43.py 2>verification/v4/renderer/browser-stderr.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: aureon-v43-adapter-diagnostics
+          name: aureon-v43-device-${{ matrix.disposal }}
           path: verification/v4/renderer/
           retention-days: 14

@@ -1,4 +1,4 @@
-name: Inspect actual WebGPU device lifetime
+name: Verify SwiftShader compositor configurations
 on:
   push:
     branches: [transfer/v43-adapter-diagnostics]
@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        disposal: [immediate, idle]
+        compositor: [default-headless, angle-headless, default-headed]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install test-only browser
+      - name: Install browser and permitted virtual display
         run: |
           pip install playwright
           python -m playwright install --with-deps chromium
@@ -32,34 +32,26 @@ jobs:
           with sync_playwright() as p:
             with open(os.environ['GITHUB_ENV'],'a') as out:out.write('CHROMIUM='+p.chromium.executable_path+'\n')
           PY
-      - name: Trace devices and test idle destruction without relaxing assertions
+      - name: Test unchanged device and pixel assertions with explicit compositor mode
         env:
-          DISPOSAL: ${{ matrix.disposal }}
+          COMPOSITOR: ${{ matrix.compositor }}
         run: |
           python - <<'PY'
           import os
           from pathlib import Path
           p=Path('scripts/verify-browser-v43.py');s=p.read_text()
-          hook="""(() => {
-            const devices=new WeakMap();let next=0;
-            const request=GPUAdapter.prototype.requestDevice;
-            GPUAdapter.prototype.requestDevice=async function(...args){const d=await request.apply(this,args),id=++next;devices.set(d,id);console.warn('DEVICE acquire '+id);d.lost.then(info=>console.warn('DEVICE lost '+id+' '+JSON.stringify({reason:info.reason,message:info.message})));return d;};
-            const destroy=GPUDevice.prototype.destroy;
-            GPUDevice.prototype.destroy=function(){console.warn('DEVICE destroy '+devices.get(this)+' main='+(this===globalThis.aureon?.app?.chart?.renderer?.device)+' '+new Error().stack);return destroy.call(this);};
-          })()"""
-          s=s.replace("for i in range(60):", "await page.add_init_script("+repr(hook)+")\n                for i in range(60):")
-          if os.environ['DISPOSAL']=='idle':
-            s=s.replace('const old=a.device;old.destroy();','const old=a.device;await old.queue.onSubmittedWorkDone();old.destroy();')
-            r=Path('src/renderer.js');t=r.read_text().replace('const record={device,gpu,','const record={adapter,device,gpu,')
-            t=t.replace('pending?.then(record=>release(record.device),()=>{});', 'pending?.then(async record=>{try{await record.device.queue.onSubmittedWorkDone();}catch{}release(record.device);},()=>{});')
-            r.write_text(t)
+          start=s.index('GPU_FLAGS=');end=s.index('\n',start)
+          flags=['--enable-unsafe-webgpu','--use-webgpu-adapter=swiftshader']
+          if os.environ['COMPOSITOR']=='angle-headless':flags+=['--use-angle=swiftshader','--enable-unsafe-swiftshader']
+          s=s[:start]+'GPU_FLAGS='+repr(flags)+s[end:]
+          if os.environ['COMPOSITOR']=='default-headed':s=s.replace('headless=True','headless=False')
           p.write_text(s)
           PY
           mkdir -p verification/v4/renderer
-          DEBUG=pw:browser python scripts/verify-browser-v43.py 2>verification/v4/renderer/browser-stderr.log
+          DEBUG=pw:browser xvfb-run -a python scripts/verify-browser-v43.py 2>verification/v4/renderer/browser-stderr.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: aureon-v43-device-${{ matrix.disposal }}
+          name: aureon-v43-compositor-${{ matrix.compositor }}
           path: verification/v4/renderer/
           retention-days: 14

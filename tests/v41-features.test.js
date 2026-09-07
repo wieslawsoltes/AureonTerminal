@@ -70,3 +70,31 @@ test('An outbox retry persists earlier failed operations before claiming later e
  sync.replica={};sync.scope='test';const a={actor:'a',clock:1},b={actor:'b',clock:1};
  await assert.rejects(sync.persist([a]),/Quota/);assert.equal(sync.unsaved.size,1);await sync.persist([b]);assert.deepEqual(saved,[a,b]);assert.equal(sync.unsaved.size,0);assert.equal(sync.storageError,null);
 });
+
+
+// The UI saves dependency edits before yielding to asynchronous worker results.
+// These regressions call the actual controller methods, not a duplicate guard.
+import {Workbench} from '../src/workbench.js';
+const configForLive=()=>({scriptInputs:{Length:5},libraries:{'local/lib/1':{source:'export f(x) => x'}},research:{universe:[{symbol:'TEST',interval:60,bars:[bar(0)],source:'fixture'}]}});
+for(const [name,edit] of Object.entries({
+ library:c=>{c.libraries['local/lib/1'].source='export f(x) => x * 2';},
+ dataset:c=>{c.research.universe[0].bars[0].c=102;},
+ input:c=>{c.scriptInputs.Length=10;}
+}))test('Dependency '+name+' edit invalidates an armed realtime worker at save',()=>{
+ const wb=Object.create(Workbench.prototype);wb.config=configForLive();let canceled=0;
+ wb.stopLiveScript=reason=>{assert.match(reason,/dependencies/);canceled++;wb.liveScript=null;};
+ wb.liveScript={dependencyKey:wb.scriptDependencyKey()};
+ wb.invalidateLiveDependencies();assert.equal(canceled,0);edit(wb.config);
+ wb.invalidateLiveDependencies();assert.equal(canceled,1);assert.equal(wb.liveScript,null);
+});
+test('Unrelated workspace changes do not cancel a realtime session',()=>{
+ const wb=Object.create(Workbench.prototype);wb.config=configForLive();wb.liveScript={dependencyKey:wb.scriptDependencyKey()};
+ wb.stopLiveScript=()=>assert.fail('Unchanged dependencies');wb.config.layout=4;wb.invalidateLiveDependencies();assert.ok(wb.liveScript);
+});
+test('Late realtime results reject a replaced session and edited source',()=>{
+ const wb=Object.create(Workbench.prototype);const s={id:'live',source:'plot(close)'};wb.context='TEST:60';wb.currentScript=()=>s;
+ const live={context:wb.context,scriptId:s.id,source:s.source};wb.liveScript=live;
+ wb.stopLiveScript=()=>{wb.liveScript=null;};assert.equal(wb.liveContextCurrent(live),true);
+ s.source='plot(open)';assert.equal(wb.liveContextCurrent(live),false);
+ wb.liveScript={...live};assert.equal(wb.liveContextCurrent(live),false);
+});

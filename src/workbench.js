@@ -54,7 +54,7 @@ export class Workbench {
   installEvents(){
     document.addEventListener('click',e=>{const b=e.target.closest('[data-v2]');if(b&&!b.disabled){e.preventDefault();Promise.resolve(this.action(b.dataset.v2,b)).catch(error=>this.app.toast(error.message,true));}});
     document.addEventListener('submit',e=>{if(e.target.dataset.v2form){e.preventDefault();Promise.resolve(this.submit(e.target.dataset.v2form,e.target)).catch(error=>this.app.toast(error.message,true));}});
-    document.addEventListener('input',e=>{if(e.target.id==='script-source'){const script=this.currentScript();if(script)script.source=e.target.value;this.scriptDirty=true;this.updateGutter();}if(e.target.id==='tools-filter')this.filterTools(e.target.value);if(e.target.id==='study-filter')this.filterStudyChoices(e.target.value);});
+    document.addEventListener('input',e=>{if(e.target.id==='script-source'){this.stopLiveScript('Source edited; restart realtime to apply it');const script=this.currentScript();if(script)script.source=e.target.value;this.scriptDirty=true;this.updateGutter();}if(e.target.id==='tools-filter')this.filterTools(e.target.value);if(e.target.id==='study-filter')this.filterStudyChoices(e.target.value);});
     document.addEventListener('change',e=>{const t=e.target;try{
       if(t.id==='script-select'){this.stopLiveScript();this.scriptTicket=(this.scriptTicket||0)+1;this.config.scriptId=t.value;this.scriptError='';this.renderScript();}
       if(t.dataset.study){const s=this.config.studies.find(s=>s.id===t.dataset.study);if(!s)return;if(t.dataset.field==='visible')s.visible=t.checked;else if(t.dataset.field==='color')s.color=t.value;else if(t.dataset.field==='overlay')s.overlay=t.checked;else{s.params={...s.params,[t.name]:Number(t.value)};s.params=studyParameters(s.type,s.params);}this.save();this.refresh();}
@@ -75,7 +75,7 @@ export class Workbench {
     });
     $('v2-file').addEventListener('change',async e=>{const file=e.target.files?.[0];try{if(!file)return;if(file.size>30000000)throw new Error('JSON limit is 30 MB');const raw=JSON.parse(await file.text());if(raw.application==='Aureon Terminal'&&raw.workspace){await this.importWorkspace(raw);}else{this.config.research=validateResearch(raw);this.save();this.app.setPanel('research');this.app.toast('Imported research. All values retain their supplied provenance.');}}catch(error){this.app.toast(error.message,true);}finally{e.target.value='';}});
   }
-  save(){try{localStorage.setItem('aureon.v2',JSON.stringify(this.config));localStorage.setItem('aureon.rules.v2',JSON.stringify(this.rules.rules));localStorage.setItem('aureon.account.v2',JSON.stringify(this.account.snapshot()));localStorage.setItem('aureon.account.source',JSON.stringify(this.ledgerSource));}catch(e){$('storage-status').textContent='Storage full / unavailable · export recommended';}}
+  save(){this.invalidateLiveDependencies();try{localStorage.setItem('aureon.v2',JSON.stringify(this.config));localStorage.setItem('aureon.rules.v2',JSON.stringify(this.rules.rules));localStorage.setItem('aureon.account.v2',JSON.stringify(this.account.snapshot()));localStorage.setItem('aureon.account.source',JSON.stringify(this.ledgerSource));}catch(e){$('storage-status').textContent='Storage full / unavailable · export recommended';}}
   currentScript(){return this.config.scripts.find(s=>s.id===this.config.scriptId)||this.config.scripts[0];}
   bars(){return this.app.visibleBars()||[];}
   datasets(){return Object.fromEntries(this.config.research.universe.map(u=>[`${u.symbol}:${u.interval}`,u]));}
@@ -175,6 +175,18 @@ export class Workbench {
   async compare(o){const context=this.context,data=await this.fetchSeries(o.symbol),raw=this.bars();if(context!==this.context)return;const map=new Map(data.bars.map(b=>[b.t,b])),values=new Float64Array(raw.length).fill(NaN),ratio=Number(o.ratio);if(!(ratio>0&&Number.isFinite(ratio)))throw new Error('Multiplier must be positive');let baseA,baseB;for(let i=0;i<raw.length;i++){const b=map.get(raw[i].t);if(!b)continue;baseA??=raw[i].c;baseB??=b.c;values[i]=o.operation==='relative'?100*((raw[i].c/baseA)-(b.c/baseB)):o.operation==='ratio'?raw[i].c/(ratio*b.c):raw[i].c-ratio*b.c;}this.compareStudy={id:'comparison',name:`${this.app.state.symbol} / ${o.symbol} · ${o.operation} · ${data.source}`,overlay:false,plots:[{name:o.operation,values,color:'#e7b872',width:1.5}],levels:o.operation==='relative'?[0]:[]};this.applyStudies();this.app.closeModal();}
   renderScript(){const s=this.currentScript();$('panel-content').innerHTML=`<div class="script-workspace"><div class="panel-toolbar">${select('script',this.config.scripts.map(x=>[x.id,x.name]),s?.id,'id="script-select"')}${button('New','new-script')}${button('Save','save-script')}${button('Export','export-script')}${select('example',Object.keys(SCRIPT_EXAMPLES),'trend','id="script-example"')}${button('Load example','example-script')}<div class="header-spacer"></div>${button('Reference','script-help')}${button('Realtime','live-script')}${button('Stop realtime','stop-live-script')}${button('Cancel','cancel-compute')}${button('Remove plots','clear-script')}<button class="primary-button" data-v2="run-script">▶ Run · Ctrl+Enter</button></div><div class="script-body"><div class="code-editor"><pre id="script-gutter"></pre><textarea id="script-source" spellcheck="false" aria-label="AureonScript source">${esc(s?.source||'')}</textarea></div><aside class="script-output"><h3>AureonScript</h3>${note('Original bounded financial-series language with retained graphics, typed collections, local libraries, and causal strategy evaluation.')}${this.scriptError?`<pre class="script-error">${esc(this.scriptError)}</pre>`:this.scriptResult?`<p class="positive">Compiled & executed</p><p>${num(this.scriptResult.bars,0)} bars · ${num(this.scriptResult.operations,0)} operations</p><p>${this.scriptResult.plots.length} plots · ${this.scriptResult.commands.length} strategy signals · ${this.scriptResult.graphics?.length||0} retained objects</p><details><summary>Retained object data</summary><pre>${esc(JSON.stringify(this.scriptResult.graphics||[],null,2).slice(0,20000))}</pre></details>`:note('Choose an example or write a script, then run.')}<form data-v2form="script-inputs">${(this.scriptResult?.inputs||[]).map(p=>field(p.title,p.type==='input.source'?select(p.title,['open','high','low','close','volume'],p.value):p.type==='input.bool'?select(p.title,['true','false'],String(p.value)):input(p.title,p.value,p.type==='input.string'?'text':'number','step="any"'))).join('')}${this.scriptResult?.inputs?.length?'<button class="secondary-button" type="submit">Apply inputs & run</button>':''}</form>${note('No eval, DOM access, network access, arbitrary objects, or executable imports. Worker jobs are bounded and cancellable.')}</aside></div></div>`;this.updateGutter();const t=$('script-source');t.addEventListener('scroll',()=>{$('script-gutter').scrollTop=t.scrollTop;});}
   updateGutter(){const t=$('script-source');if(t&&$('script-gutter'))$('script-gutter').textContent=Array.from({length:t.value.split('\n').length},(_,i)=>i+1).join('\n');}
+  scriptDependencyKey(){return JSON.stringify([this.config.scriptInputs,this.config.libraries,this.config.research.universe]);}
+  invalidateLiveDependencies(){
+    // All dependency editing/import routes call save synchronously. Hashing the
+    // full research universe is intentionally off the per-trade hot path.
+    if(this.liveScript&&this.liveScript.dependencyKey!==this.scriptDependencyKey())
+      this.stopLiveScript('Script dependencies changed; restart realtime to apply them');
+  }
+  liveContextCurrent(live){
+    if(this.liveScript!==live)return false;
+    if(this.currentScript()?.id!==live.scriptId||this.currentScript()?.source!==live.source||this.context!==live.context){this.stopLiveScript('Script context changed; restart realtime');return false;}
+    return true;
+  }
   stopLiveScript(reason=''){
     const live=this.liveScript;if(!live)return;
     this.liveScript=null;this.liveJobs.cancel();this.scriptTicket=(this.scriptTicket||0)+1;
@@ -184,11 +196,11 @@ export class Workbench {
     if(this.app.replaying||this.app.kind!=='market')throw new Error('Realtime requires a connected market dataset, not replay or synthetic prices');
     this.stopLiveScript();this.updateContext();this.scriptTicket=(this.scriptTicket||0)+1;
     const s=this.currentScript(),bars=this.bars(),asOf=Date.now()/1000;
-    const live={context:this.context,source:s.source,scriptId:s.id,sequence:0,version:this.app.series.version,lastTime:bars.at(-1)?.t,queue:[],starting:true};
+    const live={dependencyKey:this.scriptDependencyKey(),context:this.context,source:s.source,scriptId:s.id,sequence:0,version:this.app.series.version,lastTime:bars.at(-1)?.t,queue:[],starting:true};
     this.liveScript=live;
     try{
       const result=await this.liveJobs.run('live-start',bars,{source:live.source,inputs:this.config.scriptInputs,libraries:this.config.libraries,datasets:this.datasets(),symbol:this.app.state.symbol,interval:this.app.state.interval,asOf,maxBars:5000});
-      if(this.liveScript!==live)return;this.activeScriptSource=live.source;this.scriptError='';this.scriptResult=result;this.applyStudies();live.starting=false;
+      if(!this.liveContextCurrent(live))return;this.activeScriptSource=live.source;this.scriptError='';this.scriptResult=result;this.applyStudies();live.starting=false;
       $('v2-compute-status').textContent='Realtime armed · awaiting accepted trade observations';
       if(this.app.panel==='script')this.renderScript();this.drainLive(live);
     }catch(error){if(this.liveScript!==live)return;this.stopLiveScript('Realtime stopped: '+error.message);throw error;}
@@ -212,7 +224,7 @@ export class Workbench {
   async drainLive(live){
     if(live.busy||live.starting||this.liveScript!==live)return;live.busy=true;
     try{while(live.queue.length&&this.liveScript===live){
-      const result=await this.liveJobs.run('live-update',[],live.queue.shift());if(this.liveScript!==live)return;
+      const result=await this.liveJobs.run('live-update',[],live.queue.shift());if(!this.liveContextCurrent(live))return;
       this.scriptResult=result;this.applyStudies();this.evaluateRules(false);
       $('v2-compute-status').textContent='Realtime observation '+result.live.sequence+' · '+num(result.operations,0)+' operations';
     }}catch(error){if(this.liveScript===live){this.stopLiveScript('Realtime stopped: '+error.message);this.app.toast(error.message,true);}}

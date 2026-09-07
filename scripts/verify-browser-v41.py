@@ -104,7 +104,11 @@ async def main():
                     await page.evaluate("()=>{const a=aureon.app;a.market.dispatchEvent(new CustomEvent('trade',{detail:{symbol:a.state.symbol,time:Date.now()/1000,price:101,size:1,id:'v41-fixture-observation'}}));}")
                     await wait('()=>aureon.workbench.scriptResult?.live?.sequence===1')
                     result=await page.evaluate('''()=>{const w=aureon.workbench;if(w.scriptResult.plots[0].values.at(-1)!==2||!w.liveJobs.worker)throw Error('UI listener did not preserve observation state');return{sequence:w.scriptResult.live.sequence,updates:w.scriptResult.plots[0].values.at(-1),actualWorker:!!w.liveJobs.worker,source:'Injected validated fixture observation, not production connectivity'};}''')
-                    await page.locator('[data-v2="stop-live-script"]').click();assert await page.evaluate('()=>!aureon.workbench.liveScript')
+                    # A cloned worker dependency must never survive edits in the main window.
+                    await page.evaluate('''()=>{const w=aureon.workbench;w.config.libraries['local/changed/1']={source:'export f(x) => x'};w.save();if(w.liveScript)throw Error('Edited library did not stop realtime');}''')
+                    await page.locator('[data-v2="live-script"]').click();await wait('()=>!!aureon.workbench.liveScript && !aureon.workbench.liveScript.starting')
+                    await page.evaluate('''()=>{const w=aureon.workbench;w.config.research.universe=[{symbol:'FIXTURE',interval:60,source:'test',bars:[{t:0,o:1,h:1,l:1,c:1,v:1}]}];w.save();if(w.liveScript)throw Error('Replaced research did not stop realtime');}''')
+                    result['dependencyEditsStopRealtime']=True
                     await page.reload();await wait('()=>aureon.app.kind==="demo" && aureon.app.series.bars.length===1000')
                     return result
                 await check('Realtime UI refuses synthetic mode and processes an accepted fixture trade without strategy execution',ui_live)

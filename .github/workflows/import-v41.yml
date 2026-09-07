@@ -1,0 +1,30 @@
+name: Verify and import Aureon v4.1 source
+on:
+  push:
+    branches: [transfer/v4.1-validation]
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify compressed source identity
+        run: |
+          cp .github/import-v41/apply.py "$RUNNER_TEMP/aureon-apply.py"
+          python3 "$RUNNER_TEMP/aureon-apply.py" decode .github/import-v41 "$RUNNER_TEMP/aureon-v41.json"
+      - name: Apply and test exact source tree on merged v4
+        run: |
+          set -euo pipefail
+          git checkout --detach f6baa8e0cfbc0f63fb13f0d40517ae03de05b2e0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 "$RUNNER_TEMP/aureon-apply.py" apply "$RUNNER_TEMP/aureon-v41.json"
+          git log -1 --format='%H %s' >> "$GITHUB_STEP_SUMMARY"
+          git push origin HEAD:refs/heads/feature/v4.1-reliability-realtime

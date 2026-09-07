@@ -1,0 +1,46 @@
+name: Inspect actual WebGPU adapter availability
+on:
+  push:
+    branches: [transfer/v43-adapter-diagnostics]
+permissions:
+  contents: read
+jobs:
+  diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 67c04315ad13ef25cb4243dedb65b35fa39a5a81
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test-only browser
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+          python - <<'PY'
+          import os
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+            with open(os.environ['GITHUB_ENV'],'a') as out:out.write('CHROMIUM='+p.chromium.executable_path+'\n')
+          PY
+      - name: Capture browser warnings and exact failed lifecycle states
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/verify-browser-v43.py');s=p.read_text()
+          s=s.replace("page.on('pageerror',lambda e:errors.append(str(e)))", "page.on('pageerror',lambda e:errors.append(str(e)));page.on('console',lambda m:print('BROWSER',m.type,m.text,flush=True))")
+          s=s.replace("throw Error('Recovery failed')", "throw Error('Recovery failed: '+JSON.stringify([a.diagnostics(),b.diagnostics()]))")
+          p.write_text(s)
+          PY
+          python scripts/verify-browser-v43.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aureon-v43-adapter-diagnostics
+          path: verification/v4/renderer/
+          retention-days: 14

@@ -1,0 +1,47 @@
+name: Materialize reviewed dependency fix
+on:
+  push:
+    branches: [transfer/review4-dependencies]
+permissions:
+  contents: write
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify and reconstruct reviewed source
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,lzma,subprocess
+          from pathlib import Path,PurePosixPath
+          sha=lambda b:hashlib.sha256(b).hexdigest()
+          raw=base64.b64decode(Path('.github/import-review4/payload.b64').read_text(),validate=True)
+          assert sha(raw)=='251d23a5908fb8b0d7da3bebe62f77b14fb08bf36be43144278a1b062d803626'
+          dec=lzma.LZMADecompressor(memlimit=268435456); body=dec.decompress(raw,max_length=2000001)
+          assert dec.eof and not dec.unused_data and len(body)<=2000000
+          data=json.loads(body); assert data['base']=='d3e397b1817610dace3670c911a52ebbf5584ad4'
+          subprocess.run(['git','checkout','--detach',data['base']],check=True)
+          seen=set()
+          for item in data['files']:
+              p=PurePosixPath(item['path']); assert not p.is_absolute() and p.parts and not any(x in ('..','.git') for x in p.parts) and str(p) not in seen and not str(p).startswith('.github/')
+              seen.add(str(p)); dest=Path(p); assert not dest.is_symlink() and not any(x.is_symlink() for x in dest.parents)
+              before=dest.read_bytes() if dest.exists() else b''; assert sha(before)==item['before']; text=before.decode(); previous=0
+              for a,b,replacement in item['edits']:
+                  assert type(a) is int and type(b) is int and previous<=a<=b<=len(text) and isinstance(replacement,str); previous=b
+              for a,b,replacement in reversed(item['edits']):text=text[:a]+replacement+text[b:]
+              after=text.encode(); assert sha(after)==item['after']; dest.parent.mkdir(parents=True,exist_ok=True); dest.write_bytes(after)
+          subprocess.run(['npm','run','build'],check=True)
+          assert sha(Path('dist/AureonTerminal.html').read_bytes())==data['distribution']
+          subprocess.run(['npm','run','check'],check=True); subprocess.run(['npm','run','references'],check=True)
+          subprocess.run(['git','add','--all'],check=True)
+          tree=subprocess.check_output(['git','write-tree'],text=True).strip(); assert tree==data['tree']=='a014c24dec2588b88b02d9276b1e7f3b4fcbae38'
+          subprocess.run(['git','-c','user.name=github-actions[bot]','-c','user.email=41898282+github-actions[bot]@users.noreply.github.com','commit','-m','fix: invalidate realtime sessions on dependency edits'],check=True)
+          subprocess.run(['git','push','origin','HEAD:refs/heads/transfer/review4-output'],check=True)
+          print('Verified source tree:',tree)
+          PY

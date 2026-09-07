@@ -91,3 +91,20 @@ Named entry, close, close_all, exit, cancel and cancel_all commands remain local
 ## Unsupported surfaces
 
 The supported grammar, builtin methods and order qualifiers are finite. There is no complete intrabar broker feedback/runtime, unrestricted type/overload system, global library runtime, arbitrary web access or automatic real-money execution. Source/AST/history/operation/allocation/string/recursion limits may reject large programs. Unsupported behavior returns an error instead of being silently approximated through JavaScript.
+
+## Editor realtime mode (4.1)
+
+Select **Realtime** on an indicator while a market dataset is loaded, outside replay. The dedicated worker keeps `varip` updates within the current bar while rolling ordinary variables and retained objects back before each observation. Completing a bar records its confirmed evaluation and starts the next bar with `barstate.isnew`. Strategies/order commands are rejected: use the separate portfolio tester for causal simulated execution.
+
+The UI accepts up to 5,000 initial bars and 64 pending observations. It does not drop or coalesce observations silently: overload, stale/regressed history, worker loss, feed reconnection or changed authoritative history stops the session. Stop/cancel, context changes and replay also stop it. Restart explicitly after selecting an appropriate history. The engine re-evaluates bounded prefixes per update, so cost grows with history/source complexity; hardware and live-provider throughput are unverified.
+
+```text
+indicator("Observed updates", overlay=false)
+varip int observations = 0
+if barstate.isnew
+    observations := 0
+observations += 1
+plot(observations, "Updates including confirmation")
+```
+
+The final bar-confirmation evaluation also increments this example's counter. It counts interpreter evaluations, not a promise of a complete exchange trade tape. Initial replay seeks and rewinds now automatically rebuild retained objects from the selected historical prefix. Asynchronous jobs are rejected when their source/context/data generation is no longer current.

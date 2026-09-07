@@ -44,6 +44,14 @@ The PWA only caches the public standalone shell/icon/manifest. API paths and pri
 
 ## Collaborative client and scripts
 
-Pending shared drawing operations use tab session storage, not encrypted secret storage. They contain drawing content and account/room identifiers, never session tokens or passwords. They are removed after acknowledgement; explicit leave flushes first. Clearing/closing the tab can destroy unacknowledged edits. Undo groups do not survive reconnect. The service worker never caches drawing APIs.
+Pending shared drawing operations use account/room/symbol-scoped IndexedDB, not encrypted secret storage. Legacy session queues migrate transactionally. They contain drawing content and account/room identifiers, never session tokens or passwords. They are removed after acknowledgement; explicit leave flushes first. Closing a tab after transaction completion retains pending edits for explicit rejoin. Clearing site data, browser eviction or closing before a write commits can destroy unacknowledged edits. Undo groups do not survive reconnect. The service worker never caches drawing APIs.
 
 Retained script handles only resolve within their execution. Validated geometry uses the chart pipeline; literal label/table text never becomes HTML. Script broker feedback comes from local confirmed-bar simulation, never the production adapter. The v4 changes do not enable, exercise or broaden real-money routing.
+
+## 4.1 event and backup boundaries
+
+Event publication occurs inside the domain storage transaction. Stream delivery rechecks the persisted session, recipient, room membership and current message blocks. Retained events are private state and part of encrypted offline backups; event payloads are bounded. Events do not contain session credentials, provider keys or full workspace documents. Resync after a retention/epoch gap is mandatory for an authoritative consumer. Process-local connection caps are not distributed abuse prevention; keep the private deployment behind operator controls.
+
+Backup accepts an explicit `storage` option through its library API and `AUREON_STORAGE` in its CLI. If both JSON and SQLite files exist without a selection, it refuses an ambiguous backup instead of returning a successful backup of stale state. The operator still must stop all writers, choose the configured active driver, safeguard the independent passphrase and rehearse restore.
+
+Realtime editor mode is indicator-only. It has no route to brokerage, no independent network imports, and no authority to submit orders. It uses observed chart state rather than generated prices; source changes/reconnects/capacity failures require explicit restart. Strict Content Security Policy remains unchanged.

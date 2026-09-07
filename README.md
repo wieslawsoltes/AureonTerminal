@@ -1,4 +1,4 @@
-# Aureon Terminal 4.0
+# Aureon Terminal 4.1
 
 Plain HTML/CSS/JavaScript market workbench with native WebGPU geometry and an independent Canvas fallback. The application includes 26 chart styles, 73 configurable studies, 66 drawing tools, editable 16-chart layouts, bounded scripting, causal pattern scans, financial models and opt-in private services.
 
@@ -60,9 +60,9 @@ Read [SECURITY.md](SECURITY.md) before configuring any remote or live service, [
 
 Default `AUREON_STORAGE=json` remains one-process-only. For several processes on the same host, set `AUREON_STORAGE=sqlite` and point each process at the same `AUREON_DATA_DIR` on a **local filesystem**. Use distinct ports and the same configured public origin behind your proxy. Keep operator/provider configuration consistent. The first SQLite startup migrates existing JSON only when initializing an empty database.
 
-Do not place a WAL database on shared network storage or run this configuration across hosts. Transaction callbacks serialize writes to a bounded logical payload; this favors a small private service, not horizontal database scaling. Shared monitor leases prevent stale commits, but notifications remain at-least-once and live event streams remain process-local. The drawing client polls committed operations so a reconnect can reach another local process.
+Do not place a WAL database on shared network storage or run this configuration across hosts. Transaction callbacks serialize writes to a bounded logical payload; this favors a small private service, not horizontal database scaling. Shared monitor leases prevent stale commits, but notifications remain at-least-once and event streams replay a bounded shared journal across local processes. The drawing client polls committed operations so a reconnect can reach another local process.
 
-Before changing storage mode, stop the service and make an encrypted backup with `scripts/backup.mjs`. SQLite backups read the committed logical database rather than a stale migrated `state.json`. Restore to a new directory and rehearse startup before routing users there.
+Before changing storage mode, stop the service and make an encrypted backup with `scripts/backup.mjs`. Set `AUREON_STORAGE=json` or `AUREON_STORAGE=sqlite` on the backup command to select the active store. If both storage files exist without an explicit choice, backup refuses to guess. SQLite backups read a committed logical snapshot, including current WAL commits. Restore to a new directory and rehearse startup before routing users there.
 
 ## Source map
 
@@ -71,3 +71,13 @@ Before changing storage mode, stop the service and make an encrypted backup with
 `src/drawing-crdt.js` and `drawing-sync.js` implement collaborative drawing state and transport. `script-graphics*.js` implements retained script objects and rendering. `server/sqlite-store.mjs`, `lease.mjs`, `rate-limit.mjs` and `drawing-rooms.mjs` implement the new shared persistence and authorization boundaries.
 
 MIT licensed. Provider names identify optional integrations, not affiliation or endorsement.
+
+## New in 4.1
+
+**Script editor → Realtime** starts an indicator-only worker session from the selected market history. Accepted trade observations retain `varip` state while ordinary state rolls back to the confirmed prefix. Stop/cancel, replay, context changes, authoritative history changes, reconnects and queue errors require an explicit restart. This is a bounded correctness-oriented re-evaluation engine, not a claim of incremental or exchange-tick throughput. No strategy order is sent from realtime mode.
+
+**Shared drawing rooms** now save each unacknowledged operation in IndexedDB, scoped to account/room/symbol. Closing a tab no longer intentionally deletes that queue; explicitly rejoin the room to recover it. New tabs use independent replica identities. Acknowledgement removes only the exact operation IDs and contents returned by the server. Browser eviction, clearing site data or closing before a write commits can still lose edits; the UI reports unsaved recovery writes.
+
+**Pro tools → Actual trades** exposes diagonal or same-row imbalances, minimum classified volume, stacked consecutive rows and a volume value area. Missing rows remain unknown rather than zero-volume evidence. Retained script objects are rebuilt on the initial replay seek and on rewind, and stale worker completions cannot restore explicitly removed plots.
+
+**Shared event delivery** stores alert/message/workspace/room notifications in the same transaction as the source mutation. SQLite processes read the same bounded journal. EventSource reconnects use `Last-Event-ID`; expired history signals an explicit resync rather than pretending nothing was missed. See [ARCHITECTURE.md](ARCHITECTURE.md) for retention and delivery limits.

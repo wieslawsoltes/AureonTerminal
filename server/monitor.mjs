@@ -1,6 +1,7 @@
 /** Polling monitor with durable baselines and fenced ownership. Provider errors
  * never fabricate samples; stale owners cannot commit after lease takeover.
  */
+import {appendEvent} from './events.mjs';
 import {enqueueDelivery} from './delivery-pro.mjs';
 import {RulesEngine} from '../src/alerts-v2.js';
 import {LeaseCoordinator} from './lease.mjs';
@@ -37,7 +38,7 @@ export class AlertMonitor {
                 observation:{revision:r.updated,time:sample.time,values:engine.previous.get(r.id)}});
             }
             const accepted=events.filter(e=>valid.has(e.ruleId)).map(e=>({...e,userId:valid.get(e.ruleId)}));
-            for(const event of accepted)enqueueDelivery(state,event.userId,event);
+            for(const event of accepted){enqueueDelivery(state,event.userId,event);appendEvent(state,event.userId,{type:'alert',event});}
             state.alertLog.push(...accepted);state.alertLog=state.alertLog.slice(-10000);return accepted;
           });
           for(const event of committed)this.publish(event.userId,{type:'alert',event});

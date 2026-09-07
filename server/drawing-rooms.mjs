@@ -1,6 +1,7 @@
 /** Member-authorized, bounded operation-set documents. Shared snapshots keep
  * their own revisions; drawing operations never overwrite the room snapshot.
  */
+import {appendEvent} from './events.mjs';
 import {DrawingDocument,DrawingReplica} from '../src/drawing-crdt.js';
 const problem=(status,message)=>Object.assign(new Error(message),{status});
 const memberRoom=(state,id,user)=>{
@@ -33,6 +34,7 @@ export async function drawingRoomRequest({store,route,method,url,user,read,resul
       const added=document.merge(body.operations);
       current.drawingDocuments[symbol]=document.snapshot();
       if(Buffer.byteLength(JSON.stringify(current.drawingDocuments))>16_000_000)throw problem(400,'Room drawing-history byte capacity reached');
+      if(added)for(const member of current.members)appendEvent(state,member,{type:'drawings',id,symbol});
       return {roomId:id,symbol,added,document:current.drawingDocuments[symbol]};
     }catch(error){if(error.status)throw error;throw problem(400,error.message);}
   });

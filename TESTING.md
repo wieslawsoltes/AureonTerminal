@@ -1,11 +1,11 @@
-# Aureon Terminal v4 verification
+# Aureon Terminal v4.1 verification
 
 Verification distinguishes executable source, local tests, real-origin browser tests, and external services. Archived earlier evidence is not proof that a new commit passes; the current commit's Actions runs are authoritative.
 
 ## Local checks
 
-- **446 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
-- **29 inherited v3 browser groups passed** through standalone document injection, with no captured page JavaScript errors.
+- **479 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
+- Earlier v3 browser evidence is retained for history, not asserted as a new 4.1 run.
 - **6 new v4 static browser groups passed** through document injection, with no captured page JavaScript errors.
 - Source syntax checks, standalone generation and the current-file independent-product reference guard passed.
 
@@ -49,3 +49,11 @@ Python Playwright and Chromium are test tools, not runtime dependencies. `CHROMI
 ## Not established
 
 Hardware WebGPU shader/device execution or throughput; credentialed production research/broker feeds; real-money orders; recipient receipt of email/SMS/push; production TLS/container operation; native mobile binaries; accessibility certification; global licensed datasets; multi-node failover; lossless recovery after power failure; recognition/prediction accuracy of heuristic patterns; or an operational SLA. No real credentials, external notifications or real orders were used for this implementation's tests.
+
+## 4.1 regressions
+
+`v41-events.test.js` checks bounded journal retention, recipient privacy, authorized cursor replay, session revocation, socket pressure, transaction rollback, backup driver ambiguity, explicit JSON/SQLite selection and pre-journal restore cursor clearing. `v41-http-events.test.js` launches two independent Node processes on a shared local SQLite database: one writes, the other streams, reconnect replays only the correct user's workspace, and logout on the first process closes the second process's stream.
+
+`v41-features.test.js` checks realtime rollback and `varip`, explicit completed-bar rollover, ordering/clock/history/capacity rejection, independent job runtimes, workerless cancellation, indicator-only operation, diagonal/same-row footprint ratios, missing-row behavior, stacks, unknown-side volumes, deterministic POC/value areas, workspace validation and failed outbox batch retention.
+
+`verify-browser-v41.py` is invoked by the existing v4 HTTP harness, with reports under `verification/v4/next/`. Its eight browser groups exercise actual IndexedDB transaction/acknowledgement isolation, unavailable storage, closing a tab and recovering in a new one, replay rewind/exit, stale job removal, actual stateful workers, realtime UI with an explicitly injected validated trade fixture, and footprint controls. Local managed Chromium blocks HTTP navigation, so these new secure-origin groups must be checked in CI; the test definitions alone are not passing evidence. No browser policy or application CSP is weakened.

@@ -1,3 +1,13 @@
+# 4.1.0
+
+- Persist shared events transactionally and replay bounded, authorized SSE cursors across same-host processes; enforce current session/membership and socket backpressure.
+- Require an explicit active backup driver when JSON and SQLite files coexist.
+- Recover shared drawing queues across tab closure with operation-level IndexedDB transactions, independent replica identities and exact-payload acknowledgement; preserve failed write batches for retry.
+- Connect indicator-only realtime sessions to the editor and dedicated workers, with ordinary rollback, varip, explicit rollover and fail-closed sequence/history/capacity handling.
+- Rebuild retained script graphics on initial replay seeks and rewinds; discard stale data/source/cutoff results after asynchronous completion.
+- Add configurable diagonal/same-row footprint imbalances, stacked levels and deterministic POC/value areas without treating missing prints as zero volume.
+- Add journal/backup/realtime/footprint and independent-process HTTP regressions plus browser transaction, tab-closure, replay and worker tests. Keep provider credentials and real-money routing disabled.
+
 # 4.0.0
 
 - Establish independent product language throughout current tracked source, documentation and generated distribution; preserve licenses and history. Add a source reference guard to CI.

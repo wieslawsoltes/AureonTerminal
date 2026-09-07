@@ -1,6 +1,6 @@
 /** Script screening UI; numerical execution lives only in its dedicated pool. */
 import {ScreeningClient} from './screening-client.js';
-import {validateScreenQuery,queryScreenRows,screenColumns,screeningCSV,SCREEN_FIELDS,SCREEN_OPERATORS} from './screening-query.js';
+import {validateScreenQuery,screenFieldHasHistory,queryScreenRows,screenColumns,screeningCSV,SCREEN_FIELDS,SCREEN_OPERATORS} from './screening-query.js';
 import {uid} from './core.js';
 import {TIMEFRAMES} from './data.js';
 import {$,escapeHTML as esc,number as num,select,field,input,button,note,table,empty} from './ui.js';
@@ -10,12 +10,15 @@ export class ScreeningPanel {
     this.options={workers:Math.max(1,Math.min(4,(globalThis.navigator?.hardwareConcurrency||2)-1)),cutoff:'',maxOperations:2000000};
     this.onChange=e=>{
       const id=e.target.id;
+      const filter=e.target.closest?.('[data-v2form="pro-screen-filter"]');
+      if(filter&&['field','otherField'].includes(e.target.name)){this.crossingOptions(filter);return;}
       if(!['script-screen-sort','script-screen-direction','script-screen-combine','script-screen-limit'].includes(id))return;
       try {const key=id.slice('script-screen-'.length),value=key==='limit'?Number(e.target.value):e.target.value;this.setQuery({...this.query,[key]:value});this.update();}
       catch(error){this.wb.app.toast(error.message,true);}
     };
     document.addEventListener('change',this.onChange);
   }
+  crossingOptions(form){const hasHistory=screenFieldHasHistory(form.elements.field.value)&&(!form.elements.otherField.value||screenFieldHasHistory(form.elements.otherField.value));for(const op of form.elements.op.options)if(['crossup','crossdown'].includes(op.value))op.disabled=!hasHistory;if(!hasHistory&&['crossup','crossdown'].includes(form.elements.op.value))form.elements.op.value='>=';}
   get query(){return validateScreenQuery(this.wb.config.screenQuery||{});}
   setQuery(value){this.wb.config.screenQuery=validateScreenQuery(value);this.offset=0;this.wb.save();}
   fields(){return [...SCREEN_FIELDS,...screenColumns(this.result?.rows||[]).map(name=>'plot:'+name)];}
@@ -47,7 +50,7 @@ export class ScreeningPanel {
         ${input('value',0,'text','aria-label="Literal threshold or text"')}
         ${select('otherField',[['','Compare to literal'],...fields],'' ,'aria-label="Optional comparison column"')}
         <button type="submit" class="secondary-button">Add condition</button>${button('Clear filters','pro-screen-clear')}
-      </form><div id="script-screen-output">${this.output()}</div></section>`;
+      </form>${note('Crossings require current and prior price, volume or named plot values on both sides. Metadata such as age and bar count has no crossing history.')}<div id="script-screen-output">${this.output()}</div></section>`;
   }
   output() {
     const rows=this.result?.rows||[],q=this.query,r=queryScreenRows(rows,q,this.offset),columns=screenColumns(rows);

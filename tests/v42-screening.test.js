@@ -104,3 +104,14 @@ test('Disposed analysis clients reject new work instead of resurrecting worker r
 test('Opening a result dataset requires completed scan identity and returns a detached copy',async()=>{
  const c=new ScreeningClient({createClient:()=>new JobClient()});assert.throws(()=>c.dataset(0),/completed/);await c.run(options());const copy=c.dataset(0);copy.bars[0].c=999;assert.equal(c.dataset(0).bars[0].c,100);assert.throws(()=>c.dataset(-1));c.destroy();assert.throws(()=>c.dataset(0),/completed/);
 });
+
+test('Crossings reject numeric metadata that has no retained previous value',()=>{
+ for(const field of['change','age','time','interval','bars'])for(const op of['crossup','crossdown'])assert.throws(()=>validateScreenQuery({filters:[{field,op,value:0}]}),/prior values/);
+});
+test('Both sides of column crossings require prior values, not just the left operand',()=>{
+ for(const otherField of['age','change','time','bars','interval'])assert.throws(()=>validateScreenQuery({filters:[{field:'plot:Signal',op:'crossup',otherField}]}),/Both crossing columns/);
+ for(const field of['price','volume','plot:Signal'])assert.doesNotThrow(()=>validateScreenQuery({filters:[{field,op:'crossup',otherField:'plot:Threshold'}]}));
+});
+test('Portable saved query validation rejects unsupported metadata crossings',async()=>{
+ const {defaultExtensions,validateExtensions}=await import('../src/workspace-v2.js');const source=defaultExtensions();source.screenTemplates=[{id:'invalid-cross',name:'Invalid',query:{filters:[{field:'change',op:'crossup',value:0}]}}];assert.throws(()=>validateExtensions(source),/prior values/);
+});

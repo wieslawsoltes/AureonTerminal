@@ -3924,7 +3924,7 @@ Object.assign(exports,{ProWorkbench});
 factories["src/screening-panel.js"]=(exports,require)=>{
 /** Script screening UI; numerical execution lives only in its dedicated pool. */
 const {ScreeningClient}=require("src/screening-client.js");
-const {validateScreenQuery,queryScreenRows,screenColumns,screeningCSV,SCREEN_FIELDS,SCREEN_OPERATORS}=require("src/screening-query.js");
+const {validateScreenQuery,screenFieldHasHistory,queryScreenRows,screenColumns,screeningCSV,SCREEN_FIELDS,SCREEN_OPERATORS}=require("src/screening-query.js");
 const {uid}=require("src/core.js");
 const {TIMEFRAMES}=require("src/data.js");
 const {$,escapeHTML:esc,number:num,select,field,input,button,note,table,empty}=require("src/ui.js");
@@ -3934,12 +3934,15 @@ class ScreeningPanel {
     this.options={workers:Math.max(1,Math.min(4,(globalThis.navigator?.hardwareConcurrency||2)-1)),cutoff:'',maxOperations:2000000};
     this.onChange=e=>{
       const id=e.target.id;
+      const filter=e.target.closest?.('[data-v2form="pro-screen-filter"]');
+      if(filter&&['field','otherField'].includes(e.target.name)){this.crossingOptions(filter);return;}
       if(!['script-screen-sort','script-screen-direction','script-screen-combine','script-screen-limit'].includes(id))return;
       try {const key=id.slice('script-screen-'.length),value=key==='limit'?Number(e.target.value):e.target.value;this.setQuery({...this.query,[key]:value});this.update();}
       catch(error){this.wb.app.toast(error.message,true);}
     };
     document.addEventListener('change',this.onChange);
   }
+  crossingOptions(form){const hasHistory=screenFieldHasHistory(form.elements.field.value)&&(!form.elements.otherField.value||screenFieldHasHistory(form.elements.otherField.value));for(const op of form.elements.op.options)if(['crossup','crossdown'].includes(op.value))op.disabled=!hasHistory;if(!hasHistory&&['crossup','crossdown'].includes(form.elements.op.value))form.elements.op.value='>=';}
   get query(){return validateScreenQuery(this.wb.config.screenQuery||{});}
   setQuery(value){this.wb.config.screenQuery=validateScreenQuery(value);this.offset=0;this.wb.save();}
   fields(){return [...SCREEN_FIELDS,...screenColumns(this.result?.rows||[]).map(name=>'plot:'+name)];}
@@ -3971,7 +3974,7 @@ class ScreeningPanel {
         ${input('value',0,'text','aria-label="Literal threshold or text"')}
         ${select('otherField',[['','Compare to literal'],...fields],'' ,'aria-label="Optional comparison column"')}
         <button type="submit" class="secondary-button">Add condition</button>${button('Clear filters','pro-screen-clear')}
-      </form><div id="script-screen-output">${this.output()}</div></section>`;
+      </form>${note('Crossings require current and prior price, volume or named plot values on both sides. Metadata such as age and bar count has no crossing history.')}<div id="script-screen-output">${this.output()}</div></section>`;
   }
   output() {
     const rows=this.result?.rows||[],q=this.query,r=queryScreenRows(rows,q,this.offset),columns=screenColumns(rows);
@@ -4092,6 +4095,7 @@ function field(value) {
   if (typeof value!=='string'||value.length>256||!SCREEN_FIELDS.includes(value)&&!/^plot:.{1,240}$/s.test(value)) throw new TypeError('Unknown screening field');
   return value;
 }
+function screenFieldHasHistory(key){return key==='price'||key==='volume'||typeof key==='string'&&/^plot:.{1,240}$/s.test(key);}
 function validateScreenQuery(raw={}) {
   if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new TypeError('Screen query must be an object');
   const filters=raw.filters??[];
@@ -4100,6 +4104,9 @@ function validateScreenQuery(raw={}) {
     if(!f||!SCREEN_OPERATORS.includes(f.op))throw new TypeError('Unknown screen predicate');
     const out={field:field(f.field),op:f.op};
     if(['exists','isna'].includes(f.op))return out;
+    const crossing=f.op==='crossup'||f.op==='crossdown';
+    if(crossing&&!screenFieldHasHistory(f.field))throw new TypeError('Crossings require price, volume or plot columns with prior values');
+    if(crossing&&f.otherField!=null&&!screenFieldHasHistory(f.otherField))throw new TypeError('Both crossing columns must retain prior values');
     const textual=['symbol','source'].includes(f.field);
     if(textual&&!['contains','==','!='].includes(f.op))throw new TypeError('Text fields require contains or equality');
     if(f.otherField!=null){if(f.op==='contains')throw new TypeError('contains requires literal text');out.otherField=field(f.otherField);if(textual!==['symbol','source'].includes(f.otherField))throw new TypeError('Compared fields must have compatible types');return out;}
@@ -4159,7 +4166,7 @@ function screeningCSV(snapshot,query={}) {
   return [headers,...rows.map(r=>[r.symbol,r.interval,snapshot.asOf,r.time,r.age,r.bars,r.price,r.change,r.volume,r.source,...columns.map(name=>screenValue(r,'plot:'+name)),r.error??''])].map(row=>row.map(cell).join(',')).join('\r\n')+'\r\n';
 }
 
-Object.assign(exports,{SCREEN_FIELDS,SCREEN_OPERATORS,validateScreenQuery,screenValue,matchesScreen,queryScreenRows,screenColumns,screeningCSV});
+Object.assign(exports,{SCREEN_FIELDS,SCREEN_OPERATORS,screenFieldHasHistory,validateScreenQuery,screenValue,matchesScreen,queryScreenRows,screenColumns,screeningCSV});
 };
 factories["src/alerts-v2.js"]=(exports,require)=>{
 /** Shared condition engine for browser and always-running server monitors.

@@ -76,6 +76,13 @@ async def main():
                 await check('Two-worker frozen scan excludes future/provisional bars and keeps all named scalar columns',scan)
                 async def filter_query():
                     form=page.locator('[data-v2form="pro-screen-filter"]')
+                    await form.locator('[name="field"]').select_option('change')
+                    assert await form.locator('[name="op"] option[value="crossup"]').is_disabled()
+                    await form.locator('[name="field"]').select_option('price')
+                    await form.locator('[name="otherField"]').select_option('age')
+                    assert await form.locator('[name="op"] option[value="crossdown"]').is_disabled()
+                    await form.locator('[name="otherField"]').select_option('')
+                    assert not await form.locator('[name="op"] option[value="crossup"]').is_disabled()
                     await form.locator('[name="field"]').select_option('plot:Median');await form.locator('[name="op"]').select_option('>=');await form.locator('[name="value"]').fill('197');await form.locator('[type="submit"]').click()
                     await page.locator('#script-screen-sort').select_option('plot:Median');await page.locator('#script-screen-direction').select_option('asc');await page.locator('#script-screen-limit').select_option('10')
                     return await page.evaluate('''()=>{const s=aureon.workbench.pro.screening,buttons=[...document.querySelectorAll('#script-screen-output [data-v2="pro-screen-open"]')];if(buttons.length!==8||buttons[0].textContent!=='FIX-04'||s.query.sort!=='plot:Median'||s.query.filters.length!==1)throw Error('Filtering or sorting failed');return{matches:buttons.length,first:buttons[0].textContent,query:s.query};}''')

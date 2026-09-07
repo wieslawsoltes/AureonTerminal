@@ -5,6 +5,7 @@ function field(value) {
   if (typeof value!=='string'||value.length>256||!SCREEN_FIELDS.includes(value)&&!/^plot:.{1,240}$/s.test(value)) throw new TypeError('Unknown screening field');
   return value;
 }
+export function screenFieldHasHistory(key){return key==='price'||key==='volume'||typeof key==='string'&&/^plot:.{1,240}$/s.test(key);}
 export function validateScreenQuery(raw={}) {
   if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new TypeError('Screen query must be an object');
   const filters=raw.filters??[];
@@ -13,6 +14,9 @@ export function validateScreenQuery(raw={}) {
     if(!f||!SCREEN_OPERATORS.includes(f.op))throw new TypeError('Unknown screen predicate');
     const out={field:field(f.field),op:f.op};
     if(['exists','isna'].includes(f.op))return out;
+    const crossing=f.op==='crossup'||f.op==='crossdown';
+    if(crossing&&!screenFieldHasHistory(f.field))throw new TypeError('Crossings require price, volume or plot columns with prior values');
+    if(crossing&&f.otherField!=null&&!screenFieldHasHistory(f.otherField))throw new TypeError('Both crossing columns must retain prior values');
     const textual=['symbol','source'].includes(f.field);
     if(textual&&!['contains','==','!='].includes(f.op))throw new TypeError('Text fields require contains or equality');
     if(f.otherField!=null){if(f.op==='contains')throw new TypeError('contains requires literal text');out.otherField=field(f.otherField);if(textual!==['symbol','source'].includes(f.otherField))throw new TypeError('Compared fields must have compatible types');return out;}

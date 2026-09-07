@@ -1,0 +1,46 @@
+name: Verify screen crossing review fix
+on:
+  push:
+    branches: [transfer/review5-crossings]
+permissions:
+  contents: write
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify and materialize source fix
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,lzma,subprocess
+          from pathlib import Path,PurePosixPath
+          sha=lambda b:hashlib.sha256(b).hexdigest()
+          raw=base64.b64decode(Path('.github/import-review5/payload.b64').read_text(),validate=True)
+          assert sha(raw)=='f003e300ccd71b1597a817b897e76beee6f0a46b04bc4325fa3d538f300b2d60'
+          dec=lzma.LZMADecompressor(memlimit=268435456); body=dec.decompress(raw,max_length=2000001)
+          assert dec.eof and not dec.unused_data and len(body)<=2000000
+          data=json.loads(body); assert data['base']=='1c44960b4673c6136c7f2b6bf96c81855b1ec040'
+          subprocess.run(['git','checkout','--detach',data['base']],check=True)
+          seen=set()
+          for item in data['files']:
+              p=PurePosixPath(item['path']); assert not p.is_absolute() and p.parts and not any(x in ('..','.git') for x in p.parts) and str(p) not in seen and not str(p).startswith('.github/')
+              seen.add(str(p)); dest=Path(p); assert not dest.is_symlink() and not any(x.is_symlink() for x in dest.parents)
+              before=dest.read_bytes() if dest.exists() else b''; assert sha(before)==item['before']; text=before.decode(); previous=0
+              for a,b,replacement in item['edits']:
+                  assert type(a) is int and type(b) is int and previous<=a<=b<=len(text) and isinstance(replacement,str); previous=b
+              for a,b,replacement in reversed(item['edits']):text=text[:a]+replacement+text[b:]
+              after=text.encode(); assert sha(after)==item['after']; dest.parent.mkdir(parents=True,exist_ok=True); dest.write_bytes(after)
+          subprocess.run(['npm','run','build'],check=True)
+          assert sha(Path('dist/AureonTerminal.html').read_bytes())==data['distribution']=='b388f91538496502e7c0b526aa9a294bda37f105b1e6b8ec90d275320b853e54'
+          subprocess.run(['npm','run','check'],check=True); subprocess.run(['npm','run','references'],check=True)
+          subprocess.run(['git','add','--all'],check=True)
+          assert subprocess.check_output(['git','write-tree'],text=True).strip()==data['tree']=='e2a09c538f4bb9dc7cf6f74dfca1208a99355d6f'
+          subprocess.run(['git','-c','user.name=github-actions[bot]','-c','user.email=41898282+github-actions[bot]@users.noreply.github.com','commit','-m','fix: require retained history for screening crossings'],check=True)
+          subprocess.run(['git','push','origin','HEAD:refs/heads/transfer/review5-output'],check=True)
+          PY

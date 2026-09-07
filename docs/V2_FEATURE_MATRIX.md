@@ -1,8 +1,8 @@
 # Aureon Terminal 2.0 — delivered scope and remaining gaps
 
-This is the release inventory, not a claim of complete TradingView parity. “Implemented” means executable source is present; it does not mean certified equivalent to TradingView, a tested production feed, or an audited financial service. Verification is separately recorded in TESTING.md. Imported or synthetic data is labeled and is never intentionally relabeled as live.
+This is the release inventory, not a claim of complete external charting platforms parity. “Implemented” means executable source is present; it does not mean certified equivalent to external charting platforms, a tested production feed, or an audited financial service. Verification is separately recorded in TESTING.md. Imported or synthetic data is labeled and is never intentionally relabeled as live.
 
-TradingView's public feature catalogue and Pine documentation were consulted as a scope reference on 2026-09-07. They describe a much broader commercial product, including its licensed data and hosted ecosystem. No proprietary implementation, charting library, Pine runtime, user scripts, or branding assets were copied.
+Public charting and language documentation were consulted as behavioral references on 2026-09-07. No proprietary implementation, charting library, external scripting languages runtime, user scripts, or branding assets were copied.
 
 ## Rendering and chart workspace
 
@@ -36,8 +36,8 @@ Pattern tools place and edit annotations; they do not automatically detect patte
 | Original scripting language | Implemented | AureonScript lexer, Pratt parser, AST interpreter, sequential series, inputs, plots, fills, colors, alerts and strategy commands. |
 | History and higher-timeframe series | Implemented with limits | Nonnegative history; imported higher/equal-timeframe datasets only, after source close. |
 | Script editor | Implemented | Text editor, line gutter, examples, diagnostics, inputs, execute/cancel/save/export. |
-| Full Pine v6 compatibility | Not implemented | No arrays/maps/tuples/UDTs/methods/libraries, comprehensive builtin set, exact rollback semantics, lower-timeframe requests or complete broker-emulator semantics. |
-| Pine cloud IDE / ecosystem | Not implemented | No Pine profiler, library marketplace, proprietary server runtime, TradingView script import or community catalogue. |
+| Full external scripting languages compatibility | Not implemented | No arrays/maps/tuples/UDTs/methods/libraries, comprehensive builtin set, exact rollback semantics, lower-timeframe requests or complete broker-emulator semantics. |
+| external scripting languages cloud IDE / ecosystem | Not implemented | No external scripting languages profiler, library marketplace, proprietary server runtime, external charting platforms script import or community catalogue. |
 | Entire built-in study/drawing catalogue | Not implemented | The enumerated types are the implemented registry; unsupported studies are not silently substituted. |
 | Automatic pattern recognition | Not implemented | No automatic candlestick, harmonic, Elliott-wave or chart-pattern scanner. |
 
@@ -55,7 +55,7 @@ Pattern tools place and edit annotations; they do not automatically detect patte
 | Optional external paper account | Implemented adapter; credentials required | Fixed Alpaca paper host, account/order/cancel APIs, explicit confirmation and pre-existing owner authorization. Protocol fixtures tested, no authenticated live service test. |
 | Real-money trading | Not implemented | No production order destination, exchange matching access, custody, broker OAuth network or real-money order router. |
 | Full market microstructure | Not implemented | No tick reconstruction, limit queue priority, borrow/funding charges, realistic market impact, FX conversion, options exercise or corporate-action accounting. |
-| Full broker emulator | Not implemented | No complete Pine order semantics, pyramiding/entry-ID ledger, tick-level bar magnifier or exchange certification. |
+| Full broker emulator | Not implemented | No complete external scripting languages order semantics, pyramiding/entry-ID ledger, tick-level bar magnifier or exchange certification. |
 
 ## Data, screening and research
 
@@ -82,14 +82,11 @@ Pattern tools place and edit annotations; they do not automatically detect patte
 | Alert delivery | Implemented | In-app log and authenticated SSE. Persistent recent events can be retrieved later. |
 | Shared ideas | Implemented | Explicit snapshot publication, server-local feed, comments, likes, owner deletion and loading a shared chart. |
 | Complete alert hosting | Not implemented | No hosted SLA, distributed scheduler, server-side script execution, drawing-geometry alerts, external email/SMS/webhook/web-push delivery or offline-provider backfill. |
-| Social platform parity | Not implemented | No TradingView user graph, messaging, moderation platform, competition service, broker reviews or real-time collaborative document editing. |
+| Social platform parity | Not implemented | No external charting platforms user graph, messaging, moderation platform, competition service, broker reviews or real-time collaborative document editing. |
 | Production infrastructure | Not supplied | No deployment, TLS certificate management, MFA, recovery, email verification, audit certification, HA database, replication or guaranteed recovery point. |
 
 ## Reference catalogue
 
-- TradingView features: https://www.tradingview.com/features/
-- Pine execution model: https://www.tradingview.com/pine-script-docs/language/execution-model/
-- Pine strategies: https://www.tradingview.com/pine-script-docs/concepts/strategies/
 - Coinbase channels: https://docs.cdp.coinbase.com/exchange/websocket-feed/channels
 - Alpaca paper trading: https://docs.alpaca.markets/us/docs/paper-trading
 

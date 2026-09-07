@@ -1,6 +1,6 @@
 # Aureon Terminal 3.0 — executable scope and remaining boundaries
 
-This inventory replaces the v2 matrix (retained in `docs/V2_FEATURE_MATRIX.md`). It describes the repository, not full TradingView/Pine equivalence or a certified financial service. “Implemented” means working source and the specified interface exist. Verification, hardware limitations and provider-fixture boundaries are in `TESTING.md`.
+This inventory replaces the v2 matrix (retained in `docs/V2_FEATURE_MATRIX.md`). It describes the repository, not full external charting platforms equivalence or a certified financial service. “Implemented” means working source and the specified interface exist. Verification, hardware limitations and provider-fixture boundaries are in `TESTING.md`.
 
 ## Charting and editing
 
@@ -22,20 +22,20 @@ The additional studies include ALMA, KAMA, ZLEMA, McGinley, Aroon, Vortex, Chopp
 
 New drawings include pitchfork variants, channels, arrows, angles, Fibonacci arcs/wedges/log spirals, price/time Gann constructions, polygon/Bezier/highlighter/arc, cyclic projections, anchored labels/VWAP and pattern annotations. They are editable geometry, not trading signals or forecasts.
 
-Automatic detection now covers candlestick patterns, confirmed pivots, double/triple tops and bottoms, head-and-shoulders/inverse, triangles/wedges, harmonic and constrained Elliott-impulse candidates. Each result carries an observation/confirmation time; future pivots cannot appear in an earlier prefix. These are rule-based candidates, not recognition accuracy guarantees or a complete pattern taxonomy. The registry is still **not the entire TradingView catalogue**.
+Automatic detection now covers candlestick patterns, confirmed pivots, double/triple tops and bottoms, head-and-shoulders/inverse, triangles/wedges, harmonic and constrained Elliott-impulse candidates. Each result carries an observation/confirmation time; future pivots cannot appear in an earlier prefix. These are rule-based candidates, not recognition accuracy guarantees or a complete pattern taxonomy. The registry is still **not the entire external charting platforms catalogue**.
 
 ## Scripting and strategy semantics
 
 | Capability | v3 implementation | Boundary |
 |---|---|---|
-| Collections/types | Bounded typed arrays/maps/matrices, tuples, record fields, methods and multiline functions | Not all Pine type qualifiers, overloads, collection methods or builtin functions. |
+| Collections/types | Bounded typed arrays/maps/matrices, tuples, record fields, methods and multiline functions | Not all external scripting languages type qualifiers, overloads, collection methods or builtin functions. |
 | Series functions | Call-site-isolated histories; alias-preserving bar-boundary collection snapshots | Explicit operation/history/allocation/string budgets can reject large programs. |
-| Libraries | Explicit versioned local imports with exported functions; immutable public/private server catalogue | Original AureonScript only. No TradingView marketplace import, proprietary runtime or licensing access. |
-| Realtime | `RealtimeScriptSession` API with ordinary rollback, `varip` updates and `barstate.isnew`; closed lower-timeframe arrays from supplied datasets | API-level session; standard chart batch jobs do not claim tick-for-tick Pine runtime parity. |
+| Libraries | Explicit versioned local imports with exported functions; immutable public/private server catalogue | Original AureonScript only. No external charting platforms marketplace import, proprietary runtime or licensing access. |
+| Realtime | `RealtimeScriptSession` API with ordinary rollback, `varip` updates and `barstate.isnew`; closed lower-timeframe arrays from supplied datasets | API-level session; standard chart batch jobs do not claim tick-for-tick external scripting languages runtime parity. |
 | Profiling/screening | Executed-line operation profile, heap counters; script screening over up to 50 explicitly loaded universe datasets | Not a distributed global screener; no automatic universal historical database. |
-| Strategy commands | Named entries, targeted closes, close-all, limit/stop entries, exits/OCO, cancellation; next-bar execution in the portfolio tester | No complete Pine broker feedback (`strategy.position_size` etc.), every order qualifier, broker certification or intrabar recalculation semantics. |
+| Strategy commands | Named entries, targeted closes, close-all, limit/stop entries, exits/OCO, cancellation; next-bar execution in the portfolio tester | No complete external scripting languages broker feedback (`strategy.position_size` etc.), every order qualifier, broker certification or intrabar recalculation semantics. |
 
-**Full Pine v6 compatibility and full Pine cloud IDE/ecosystem remain unimplemented.** The additions are a substantive expansion of an original interpreter, not a renamed proprietary runtime. Unsupported syntax fails explicitly. See `SCRIPTING.md`.
+**Full external scripting languages compatibility and full external scripting languages cloud IDE/ecosystem remain unimplemented.** The additions are a substantive expansion of an original interpreter, not a renamed proprietary runtime. Unsupported syntax fails explicitly. See `SCRIPTING.md`.
 
 ## Execution and financial analytics
 

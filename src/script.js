@@ -1,6 +1,6 @@
 import {ScriptHeap,UNHANDLED_COLLECTION} from './script-collections.js';
 import {computeStudies,supertrend} from './studies.js';
-/** AureonScript: original, bounded, Pine-inspired interpreter. Never eval/Function.
+/** AureonScript: original, bounded financial-series interpreter. Never eval/Function.
  * See SCRIPTING.md for its deliberately explicit compatibility boundary.
  */
 import {alignClosedSeries} from './analytics.js';
@@ -277,7 +277,7 @@ export function runScript(source,bars,options={}){
   const captured={};for(const name of (options.capture||[]).slice(0,16))if(vars.has(name))captured[name]=vars.get(name);
   return{...meta,plots:[...plots.values()],alerts:[...alerts.values()],commands,inputs:[...inputs.values()],fills,backgrounds,operations,bars:bars.length,captured,
     varip:Object.fromEntries([...intrabar].map(name=>[name,array(name).at(-1)])),profile:[...profile].map(([line,operations])=>({line,operations})).sort((a,b)=>b.operations-a.operations),heap:{elements:heap.elements,objects:heap.objects},
-    compatibility:'AureonScript 2: explicitly documented Pine-inspired language, not full Pine v6 equivalence'};
+    compatibility:'AureonScript 2: explicitly documented external scripting languages-inspired language, not full external scripting languages equivalence'};
 }
 /** Re-evaluates committed history for each open-bar update: ordinary var state is
  * rolled back; only varip seeds survive successive updates to that same bar. */

@@ -42,4 +42,4 @@ The browser scripts require Python Playwright and Chromium, independently of app
 
 ## Not established
 
-Actual WebGPU hardware shader/device execution or GPU throughput; production Coinbase end-to-end reliability; authenticated external paper/live brokerage, research entitlements, live email/SMS/Push delivery; live Docker/TLS deployment; exchange certification; accuracy of heuristic pattern classification; WCAG/native-app parity; distributed storage/delivery or guaranteed recovery. Tests prove specific invariants and fixtures, not the completeness of TradingView or Pine semantics.
+Actual WebGPU hardware shader/device execution or GPU throughput; production Coinbase end-to-end reliability; authenticated external paper/live brokerage, research entitlements, live email/SMS/Push delivery; live Docker/TLS deployment; exchange certification; accuracy of heuristic pattern classification; WCAG/native-app parity; distributed storage/delivery or guaranteed recovery. Tests prove specific invariants and fixtures, not the completeness of external charting platforms semantics.

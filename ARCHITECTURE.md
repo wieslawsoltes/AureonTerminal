@@ -78,7 +78,7 @@ A 30-second worker timeout terminates the worker, rejects pending work and start
 
 ## 5. AureonScript
 
-The interpreter accepts a documented original language, not full Pine Script. It tokenizes input, parses expressions with operator precedence, builds statement blocks from indentation, audits stateful call placement, and evaluates sequentially by bar.
+The interpreter accepts a documented original language, not full external scripting languages. It tokenizes input, parses expressions with operator precedence, builds statement blocks from indentation, audits stateful call placement, and evaluates sequentially by bar.
 
 Source is never passed to JavaScript `eval` or `Function`. Calls use a fixed dispatch table and cannot access DOM, network, modules or arbitrary object properties. Memory/work limits constrain source length, AST nodes, AST-by-bars, variables, plots, history, recursion, loop iterations and evaluation operations. SCRIPTING.md is the normative language boundary.
 

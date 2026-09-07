@@ -6,7 +6,7 @@ Expand v2 to 26 chart styles, 73 studies and 66 drawing tools; editable live 16-
 
 Add fixed-provider research, TOTP MFA and recovery, encrypted secrets, session controls/audit, isolated server-script/drawing monitors, durable opt-in email/SMS/webhook/Push delivery, immutable shared libraries, CAS chart rooms, messaging/blocks/reports/moderation, PWA/accessibility/mobile improvements and encrypted offline backup tooling. Add a separately disabled, narrow manually confirmed live-equity adapter with fixtures only.
 
-The precise boundaries and remaining product/service gaps are in FEATURE_MATRIX.md. This is not complete TradingView/Pine compatibility; no real orders, licensed services or production infrastructure are activated.
+The precise boundaries and remaining product/service gaps are in FEATURE_MATRIX.md. This is not complete external charting platforms compatibility; no real orders, licensed services or production infrastructure are activated.
 
 ## 2.0.0
 

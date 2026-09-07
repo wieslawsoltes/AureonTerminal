@@ -2,7 +2,7 @@
 
 Plain HTML/CSS/JavaScript market workbench with native WebGPU geometry and an independent Canvas fallback. The v3 upgrade extends the merged v2 application with 26 chart styles, 73 configurable studies, 66 drawing tools, editable 16-chart layouts, bounded scripting, causal pattern scans, financial models and opt-in private services.
 
-This is original runnable software, **not complete TradingView or Pine compatibility**. The precise implementation inventory, model approximations, engine-only surfaces and remaining provider/product gaps are in [FEATURE_MATRIX.md](FEATURE_MATRIX.md).
+This is original runnable software, **not complete external charting platforms compatibility**. The precise implementation inventory, model approximations, engine-only surfaces and remaining provider/product gaps are in [FEATURE_MATRIX.md](FEATURE_MATRIX.md).
 
 ## Run and verify
 
@@ -48,4 +48,4 @@ Read [SECURITY.md](SECURITY.md) before configuring any remote or live service, [
 
 `src/renderer.js` and `chart*.js` implement rendering and viewports. `studies*.js`, `patterns.js`, `market-analytics.js` and `tick-charts.js` are numerical modules. `script*.js` implement the interpreter; `execution*.js` implement simulation. `pro-workbench.js` connects v3 workflows to the DOM. `server/*-pro.mjs`, `live-gateway.mjs` and `script-runner.mjs` implement gated private services. `scripts/backup.mjs` creates authenticated encrypted offline backups, including the MFA vault key.
 
-MIT licensed. TradingView and other product/provider names identify scope references and integrations, not affiliation or equivalence.
+MIT licensed. Provider names identify optional integrations, not affiliation or endorsement.

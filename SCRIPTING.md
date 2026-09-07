@@ -1,6 +1,6 @@
 # AureonScript 2 — bounded original series interpreter
 
-This is not Pine Script v6. `//@version=6` remains a comment; it cannot change the runtime. No `eval`, DOM, network, dynamic module access or arbitrary JavaScript properties are exposed. Source imported in a workspace/library remains inert until explicitly run.
+This is the independently implemented AureonScript language. `//@version=6` remains a comment; it cannot change the runtime. No `eval`, DOM, network, dynamic module access or arbitrary JavaScript properties are exposed. Source imported in a workspace/library remains inert until explicitly run.
 
 ## Supported surfaces
 
@@ -46,7 +46,7 @@ import local/math/1 as m
 plot(m.smooth(close))
 ```
 
-Only supplied exported functions link. There is no network library download or TradingView import service. The private server catalogue publishes immutable versions under the publishing account; each version is private unless explicitly shared. Import a shared version before referencing it.
+Only supplied exported functions link. There is no network library download or external charting platforms import service. The private server catalogue publishes immutable versions under the publishing account; each version is private unless explicitly shared. Import a shared version before referencing it.
 
 Executed-line profiling reports deterministic operation counts plus heap allocation counters, not a CPU-time/performance certification. Script screening runs up to 50 explicitly loaded universe datasets with per-run limits; unavailable outputs/errors remain visible.
 
@@ -54,7 +54,7 @@ Executed-line profiling reports deterministic operation counts plus heap allocat
 
 `request.security` waits for higher/equal-timeframe bars to close. `request.security_lower_tf` returns arrays of closed intrabars inside the current parent interval, using explicitly supplied datasets keyed by `symbol:seconds`. No hidden provider fetching or future lookahead occurs.
 
-`RealtimeScriptSession` is an engine API for timestamp-ordered updates. Ordinary state is rolled back to the previous confirmed bar; `varip` state can survive updates and `barstate.isnew` can reset counters. Confirmed-history snapshots are preserved. This session API is tested separately; ordinary chart-study refreshes remain batch jobs. It is not a claim of exact Pine realtime/event semantics or incremental performance.
+`RealtimeScriptSession` is an engine API for timestamp-ordered updates. Ordinary state is rolled back to the previous confirmed bar; `varip` state can survive updates and `barstate.isnew` can reset counters. Confirmed-history snapshots are preserved. This session API is tested separately; ordinary chart-study refreshes remain batch jobs. It is not a claim of exact external scripting languages realtime/event semantics or incremental performance.
 
 ## Strategies
 
@@ -70,4 +70,4 @@ Supported commands include named entry, close, close_all, exit with limit/stop/f
 
 Actual-print magnification requires reconciliation against raw OHLCV and uses a shared finite liquidity budget. Without it, adverse-first OHLC execution is an explicit approximation. Plot-shifted/synthetic chart bars are not execution prices.
 
-Still absent: the full Pine grammar/type qualifier/overload universe, all builtins, user-defined drawing objects/tables, complete broker feedback such as `strategy.position_size`, full intrabar/recalculation/order qualifiers and TradingView’s cloud/community runtime. Unsupported syntax is rejected, never silently executed through JavaScript. Compatibility is described by tests and supported APIs, not by the presence of a familiar function name.
+Still absent: the full external scripting languages grammar/type qualifier/overload universe, all builtins, user-defined drawing objects/tables, complete broker feedback such as `strategy.position_size`, full intrabar/recalculation/order qualifiers and external charting platforms cloud/community runtime. Unsupported syntax is rejected, never silently executed through JavaScript. Compatibility is described by tests and supported APIs, not by the presence of a familiar function name.

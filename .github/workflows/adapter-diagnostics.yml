@@ -40,13 +40,13 @@ jobs:
           import os
           from pathlib import Path
           p=Path('scripts/verify-browser-v43.py');s=p.read_text()
-          hook="""() => {
+          hook="""(() => {
             const devices=new WeakMap();let next=0;
             const request=GPUAdapter.prototype.requestDevice;
             GPUAdapter.prototype.requestDevice=async function(...args){const d=await request.apply(this,args),id=++next;devices.set(d,id);console.warn('DEVICE acquire '+id);d.lost.then(info=>console.warn('DEVICE lost '+id+' '+JSON.stringify({reason:info.reason,message:info.message})));return d;};
             const destroy=GPUDevice.prototype.destroy;
             GPUDevice.prototype.destroy=function(){console.warn('DEVICE destroy '+devices.get(this)+' main='+(this===globalThis.aureon?.app?.chart?.renderer?.device)+' '+new Error().stack);return destroy.call(this);};
-          }"""
+          })()"""
           s=s.replace("for i in range(60):", "await page.add_init_script("+repr(hook)+")\n                for i in range(60):")
           if os.environ['DISPOSAL']=='idle':
             s=s.replace('const old=a.device;old.destroy();','const old=a.device;await old.queue.onSubmittedWorkDone();old.destroy();')

@@ -1,0 +1,51 @@
+name: Secure-origin browser regression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromium:
+    name: Chromium workers, editing, authentication and offline PWA
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test-only browser tooling
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          python - <<'PY'
+          import os
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              with open(os.environ['GITHUB_ENV'], 'a') as out:
+                  out.write('CHROMIUM=' + p.chromium.executable_path + '\n')
+          PY
+      - name: Build the checked-in application
+        run: npm run build
+      - name: Exercise real HTTP origin and browser workers
+        run: python scripts/verify-browser-v3.py
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aureon-v3-chromium-${{ github.run_id }}
+          path: verification/v3/
+          retention-days: 14

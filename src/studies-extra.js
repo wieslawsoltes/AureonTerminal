@@ -1,3 +1,4 @@
+import {rollingMoments,rollingPercentRank} from './rolling-statistics.js';
 /** Extended study catalogue. Warm-up remains NaN, outputs never backfilled.
  * Parameter metadata is the same source used by UI and worker validation.
  */
@@ -9,7 +10,7 @@ const divide=(a,b,factor=1)=>arr(a,(v,i)=>Number.isFinite(v)&&Number.isFinite(b[
 const param=(key,label,value,min=1,max=10000,step=1)=>({key,label,default:value,min,max,step});
 const len=(n=20)=>param('length','Length',n);
 const sum=(a,n)=>arr(sma(a,n),v=>v*n);
-function variance(a,n){const out=empty(a.length);for(let i=n-1;i<a.length;i++){let mean=0,m2=0;for(let j=0;j<n;j++){const v=a[i-n+1+j],d=v-mean;mean+=d/(j+1);m2+=d*(v-mean);}out[i]=Math.max(0,m2/n);}return out;}
+function variance(a,n){return rollingMoments(a,n).variance;}
 function adaptive(a,n,fast,slow){const out=empty(a.length),changes=arr(diff(a),Math.abs),noise=sum(changes,n);let last=NaN;for(let i=n;i<a.length;i++){if(!Number.isFinite(a[i])||!Number.isFinite(noise[i])){last=NaN;continue;}if(!Number.isFinite(last))last=a[i];const efficiency=noise[i]?Math.abs(a[i]-a[i-n])/noise[i]:0,alpha=(efficiency*(2/(fast+1)-2/(slow+1))+2/(slow+1))**2;last+=alpha*(a[i]-last);out[i]=last;}return out;}
 function directionalVolume(b){let ad=0;return arr(b,x=>ad+=x.h===x.l?0:(2*x.c-x.h-x.l)/(x.h-x.l)*x.v);}
 export function createExtraStudies({extrema,wma,roc,regression}) {
@@ -50,7 +51,7 @@ export function createExtraStudies({extrema,wma,roc,regression}) {
   mass:{name:'Mass index',levels:[27],params:[param('smooth','EMA length',9),param('length','Sum length',25)],calc:(b,p)=>{const e=ema(b.map(x=>x.h-x.l),p.smooth);return {Mass:sum(divide(e,ema(e,p.smooth)),p.length)};}},
   ulcer:{name:'Ulcer index',params:[len(14)],calc:(b,p)=>{const c=b.map(x=>x.c),h=extrema(c,p.length),draw=arr(c,(v,i)=>h[i]?((v/h[i]-1)*100)**2:NaN);return {Ulcer:arr(sma(draw,p.length),Math.sqrt)};}},
   histvol:{name:'Historical log-return volatility · annualized',params:[param('length','Length',20,2),param('annualization','Observations / year',252,1,525600)],calc:(b,p)=>{const logs=arr(b,(x,i)=>i&&x.c>0&&b[i-1].c>0?Math.log(x.c/b[i-1].c):NaN);return {Volatility:arr(variance(logs,p.length),v=>100*Math.sqrt(v*p.annualization))};}},
-  percentrank:{name:'Percent rank · strictly lower observations',range:[0,100],params:[len(100)],calc:(b,p)=>({Rank:arr(b,(x,i)=>{if(i<p.length)return NaN;let n=0;for(let j=i-p.length;j<i;j++)if(b[j].c<x.c)n++;return 100*n/p.length;})})},
+  percentrank:{name:'Percent rank · strictly lower observations',range:[0,100],params:[len(100)],calc:(b,p)=>({Rank:rollingPercentRank(b.map(x=>x.c),p.length,true)})},
   fisher:{name:'Fisher transform',levels:[0],params:[len(9)],calc:(b,p)=>{const c=b.map(x=>(x.h+x.l)/2),h=extrema(c,p.length),l=extrema(c,p.length,false),f=empty(b.length),trigger=empty(b.length);let v=0,last=0;for(let i=p.length-1;i<b.length;i++){v=h[i]===l[i]?0:Math.max(-.999,Math.min(.999,.66*((c[i]-l[i])/(h[i]-l[i])-.5)+.67*v));trigger[i]=last;f[i]=last=.5*Math.log((1+v)/(1-v))+.5*last;}return {Fisher:f,Trigger:trigger};}},
   linregslope:{name:'Linear regression slope',levels:[0],params:[param('length','Length',20,2)],calc:(b,p)=>{const c=b.map(x=>x.c),fit=regression(c,p.length),mean=sma(c,p.length);return {Slope:arr(fit,(v,i)=>(v-mean[i])*2/(p.length-1))};}},
   fractals:{name:'Confirmed fractal levels · no backdating',overlay:true,params:[param('length','Shoulder',2,1,50)],calc:(b,p)=>{let up=NaN,down=NaN;const u=empty(b.length),d=empty(b.length);for(let i=2*p.length;i<b.length;i++){const k=i-p.length;let high=true,low=true;for(let j=k-p.length;j<=i;j++)if(j!==k){high&&=b[k].h>b[j].h;low&&=b[k].l<b[j].l;}if(high)up=b[k].h;if(low)down=b[k].l;u[i]=up;d[i]=down;}return {High:u,Low:d};}},

@@ -55,3 +55,9 @@ Event publication occurs inside the domain storage transaction. Stream delivery 
 Backup accepts an explicit `storage` option through its library API and `AUREON_STORAGE` in its CLI. If both JSON and SQLite files exist without a selection, it refuses an ambiguous backup instead of returning a successful backup of stale state. The operator still must stop all writers, choose the configured active driver, safeguard the independent passphrase and rehearse restore.
 
 Realtime editor mode is indicator-only. It has no route to brokerage, no independent network imports, and no authority to submit orders. It uses observed chart state rather than generated prices; source changes/reconnects/capacity failures require explicit restart. Strict Content Security Policy remains unchanged.
+
+## 4.2 local script screening
+
+The screening pool executes bounded indicator programs only. It never sends orders, delivers alerts or fetches implicit datasets. Imported source, scalar inputs, libraries and market observations stay local to the browser and its dedicated workers unless the user explicitly exports a report or separately saves their workspace to a private server. JSON reports include captured source/inputs/local libraries and result rows; review their contents before sharing.
+
+Cutoffs are common across primary and explicitly requested datasets. Partial bars are excluded rather than converted into confirmed prices. The interpreter operation/heap/source limits still apply. Worker count, total copied bars, result columns and predicate counts have explicit bounds. Cancellation kills only scan-owned workers. A clone/worker error cannot silently turn a stateful session into fresh synchronous execution. CSV export prefixes formula-like text; data is never interpreted as JavaScript or inserted as unescaped HTML.

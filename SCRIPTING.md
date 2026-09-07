@@ -108,3 +108,37 @@ plot(observations, "Updates including confirmation")
 ```
 
 The final bar-confirmation evaluation also increments this example's counter. It counts interpreter evaluations, not a promise of a complete exchange trade tape. Initial replay seeks and rewinds now automatically rebuild retained objects from the selected historical prefix. Asynchronous jobs are rejected when their source/context/data generation is no longer current.
+
+## Rolling distributions and paired statistics (4.2)
+
+All six additions accept positional or supported named arguments:
+
+```text
+ta.median(source, length)
+ta.percentile_linear_interpolation(source, length, percentage)
+ta.percentile_nearest_rank(source, length, percentage)
+ta.variance(source, length, biased=true)
+ta.covariance(source1, source2, length, biased=true)
+ta.correlation(source1, source2, length)
+```
+
+`length` must be an integer from 1 to 10,000 and fixed at a call site for an execution. Percentage is fixed in `[0, 100]`. `biased` must be boolean: true divides centered sums by `n`; false divides by `n-1`, with sample variance/covariance undefined for `n=1`. Correlation is undefined when either paired variance is zero. Missing/nonfinite observations invalidate the entire current window, rather than shrinking it or filling a value. Function invocations keep independent call-site state; realtime rollback remains controlled by the existing execution session.
+
+Linear percentiles use `h=(n-1)*percentage/100` and interpolate neighboring ordered observations (R7). Nearest-rank percentiles select `max(1, ceil(n*percentage/100))` in one-based order. The median is the linearly interpolated 50th percentile. Different statistical packages can use different percentile definitions; these conventions are deliberate and tested. Reference definitions: https://www.itl.nist.gov/div898/handbook/prc/section2/prc262.htm .
+
+The interpreter charges state capacity before allocating a rolling tree and charges rolling work against the normal operation budget. The `rolling-statistics.js` implementation never forms variance by subtracting two large raw squares. Pairwise nodes carry original-sample anchors, local means and centered second moments. Order statistics use a duplicate-aware AVL multiset. Both structures have `O(window)` retained storage and bounded `O(log window)` update work.
+
+```text
+indicator("Distribution screen")
+plot(close, "Close")
+plot(ta.median(source=close, length=20), "Median")
+plot(ta.percentile_linear_interpolation(close, 20, 75), "Upper quartile")
+plot(ta.variance(close, 20, biased=false), "Sample variance")
+plot(ta.correlation(close, volume, 20), "Price / volume correlation")
+```
+
+### Script screening
+
+The Script tools screener runs indicators only over explicit imported datasets. Source, local libraries, scalar inputs and a single UTC cutoff are copied before scheduling. Both primary data and data available through explicit `request.security` calls exclude future/provisional bars. Plots yield current and previous scalar values, not full series sent between workers. Threshold crossings compare the last two valid outputs at that dataset's own cadence; they are not cross-exchange tick synchronization. Every row records interval, last closed-bar end, age at the cutoff and provenance.
+
+Queries are data-only objects, never executable expressions. Errors and undefined values stay separate from matches. Scan exports include the captured source and query, so changing the editor after completion does not relabel an old scan as the new program. Full raw history is not embedded in the report JSON; opening an eligible row uses the completed scan's retained immutable dataset copy.

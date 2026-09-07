@@ -1,0 +1,7 @@
+indicator("Distribution and volume screen")
+period = input.int(20, "Window")
+plot(close, "Close")
+plot(ta.median(close, period), "Median")
+plot(ta.percentile_linear_interpolation(close, period, 75), "Upper quartile")
+plot(ta.variance(close, period, biased=false), "Sample variance")
+plot(ta.correlation(close, volume, period), "Price / volume correlation")

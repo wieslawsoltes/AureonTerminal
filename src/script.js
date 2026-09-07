@@ -1,3 +1,4 @@
+import {RollingMoments,RollingOrderStatistics} from './rolling-statistics.js';
 import {ScriptGraphics,GRAPHIC_CONSTANTS} from './script-graphics.js';
 import {ScriptHeap,UNHANDLED_COLLECTION} from './script-collections.js';
 import {computeStudies,supertrend} from './studies.js';
@@ -111,6 +112,11 @@ function technicalSignature(name){
   if(['sma','ema','rma','wma','rsi','highest','lowest','stdev','sum','change','roc','mom','cci','mfi'].includes(key))return ['source','length'];
   if(['crossover','crossunder','cross'].includes(key))return ['source1','source2'];
   if(key==='linreg')return ['source','length'];
+  if(key==='median')return ['source','length'];
+  if(key==='variance')return ['source','length','biased'];
+  if(key==='correlation')return ['source1','source2','length'];
+  if(key==='covariance')return ['source1','source2','length','biased'];
+  if(['percentile_linear_interpolation','percentile_nearest_rank'].includes(key))return ['source','length','percentage'];
   if(key==='valuewhen')return ['condition','source','occurrence'];
   if(key==='barssince')return ['condition'];if(key==='cum')return ['source'];if(key==='atr')return ['length'];
   if(key==='bb')return ['series','length','mult'];if(key==='macd')return ['source','fastlen','slowlen','siglen'];
@@ -263,6 +269,33 @@ export function runScript(source,bars,options={}){
   }
   function technical(node,i,locals){
     const key=node.name.slice(3),src=node.args[0],get=(a,j)=>a?Number(value(a,j,locals)):NaN;
+    if(['median','variance','covariance','correlation','percentile_linear_interpolation','percentile_nearest_rank'].includes(key)){
+      const paired=key==='covariance'||key==='correlation',ordered=key==='median'||key.startsWith('percentile_');
+      const signature=technicalSignature(node.name);
+      if(node.args.length>signature.length||Object.keys(node.named).length||!src||paired&&!node.args[1])fail(node,'Invalid rolling-statistic arguments');
+      const n=get(node.args[paired?2:1],i),q=key==='median'?.5:ordered?get(node.args[2],i)/100:0;
+      if(!Number.isInteger(n)||n<1||n>maxHistory)fail(node,'Rolling window must be an integer from 1 to 10,000');
+      if(ordered&&(!Number.isFinite(q)||q<0||q>1))fail(node,'Percentage must be between 0 and 100');
+      const flag=node.args[paired?3:2],biased=['variance','covariance'].includes(key)&&flag?value(flag,i,locals):true;
+      if(typeof biased!=='boolean')fail(node,'biased must be boolean');
+      const identity=JSON.stringify([n,q,biased]),id=stateKey(node,locals);let state=states.get(id);
+      if(state&&state.identity!==identity)fail(node,'Rolling-statistic parameters must remain constant per call site');
+      if(!state){
+        // Charge bounded tree storage and retained series against the existing
+        // interpreter heap limit before allocating. Oversized windows stay na.
+        heap.count(bars.length+(n<=bars.length?(ordered?n*12:2**Math.ceil(Math.log2(n))*16):0),1);
+        state={identity,last:-1,values:new Float64Array(bars.length).fill(NaN),window:n>bars.length?null:ordered?new RollingOrderStatistics(n):new RollingMoments(n)};
+        states.set(id,state);
+      }
+      if(!state.window)return NaN;
+      while(state.last<i){
+        const j=++state.last;operations+=Math.ceil(Math.log2(n+1))*4;budget(node);
+        const x=get(src,j);
+        if(ordered){state.window.push(x);state.values[j]=state.window.quantile(q,key==='percentile_nearest_rank'?'nearest':'linear');}
+        else{const sample=state.window.push(x,paired?get(node.args[1],j):x).snapshot(!biased);state.values[j]=key==='variance'?sample.variance:key==='covariance'?sample.covariance:sample.correlation;}
+      }
+      return state.values[i];
+    }
     if(!['crossover','crossunder','cross','change','roc','mom','valuewhen','barssince','cum','ema','rma','rsi','atr','sma','wma','highest','lowest','stdev','sum','linreg'].includes(key))fail(node,'Unsupported technical function '+node.name);
     if(Object.keys(node.named).length)fail(node,'Technical functions currently require positional arguments');
     if(key==='crossover'||key==='crossunder'||key==='cross'){const a=get(src,i),b=get(node.args[1],i),ap=get(src,i-1),bp=get(node.args[1],i-1);return key==='crossover'?a>b&&ap<=bp:key==='crossunder'?a<b&&ap>=bp:(a>b&&ap<=bp)||(a<b&&ap>=bp);}

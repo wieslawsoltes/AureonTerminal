@@ -22,3 +22,13 @@ body.light{color-scheme:light;--bg:#ffffff;--panel:#f8f9fc;--header:#f5f7fb;--ho
 
 @media(max-width:780px){#app{min-width:320px!important;width:100vw}.app-header{overflow-x:auto;max-width:100vw}.center-workspace{min-width:0;max-width:calc(100vw - 44px)}.right-rail{display:none}.analysis-panel,.panel-content,.pro-workspace,.pro-content{min-width:0;max-width:100%}.pro-content>.panel-toolbar{flex-wrap:wrap}.pro-content .small-note{white-space:normal;overflow-wrap:anywhere}.status-bar{overflow:hidden}.range-bar{overflow-x:auto}.source-banner{right:8px;max-width:calc(100% - 16px);white-space:normal;flex-wrap:wrap}.pro-json{min-width:0}.script-body{flex-direction:column}.script-output{width:100%}.pro-split{grid-template-columns:minmax(0,1fr)}dialog{max-width:calc(100vw - 16px)}}
 @media print{.app-header,.right-rail,.status-bar{display:none!important}.center-workspace{max-width:none!important}#app{height:auto;min-width:0}.pro-live{display:none!important}}
+
+/* Bounded script-screen controls reuse the terminal's theme and table system. */
+.script-screen-section { margin-top:24px; border-top:1px solid var(--border); padding-top:16px; }
+.screen-controls { flex-wrap:wrap; align-items:end; gap:10px; }
+.screen-controls input { max-width:230px; }
+.screen-controls select { max-width:260px; }
+.screen-conditions { display:flex; flex-wrap:wrap; gap:8px; }
+.screen-condition { display:inline-flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--border); border-radius:5px; font-size:12px; }
+#script-screen-status { overflow-wrap:anywhere; }
+#script-screen-status progress { width:min(220px,40vw); vertical-align:middle; margin-left:8px; }

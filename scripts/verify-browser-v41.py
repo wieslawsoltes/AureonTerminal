@@ -2,7 +2,7 @@
 No external exchange, brokerage, email, SMS or push service is contacted.
 Run by verify-browser-v4.py so the existing CI workflow retains this evidence.
 """
-import asyncio, json, os, socket, subprocess, tempfile, time
+import asyncio, json, os, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from playwright.async_api import async_playwright
 ROOT = Path(__file__).resolve().parents[1]
@@ -131,4 +131,6 @@ async def main():
             process.terminate()
             try:process.wait(timeout=5)
             except subprocess.TimeoutExpired:process.kill();process.wait()
-if __name__=='__main__':asyncio.run(main())
+if __name__=='__main__':
+    asyncio.run(main())
+    subprocess.run([sys.executable,str(ROOT/'scripts/verify-browser-v42.py')],check=True)

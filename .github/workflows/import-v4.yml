@@ -1,0 +1,18 @@
+name: Verify Aureon v4 source transfer
+on:
+  push:
+    branches: [transfer/v4]
+permissions:
+  contents: read
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aureon-v4-transfer
+          path: .github/import-v4/
+          include-hidden-files: true
+          retention-days: 1

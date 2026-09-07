@@ -1,6 +1,6 @@
-# Aureon Terminal 4.1
+# Aureon Terminal 4.2
 
-Plain HTML/CSS/JavaScript market workbench with native WebGPU geometry and an independent Canvas fallback. The application includes 26 chart styles, 73 configurable studies, 66 drawing tools, editable 16-chart layouts, bounded scripting, causal pattern scans, financial models and opt-in private services.
+Plain HTML/CSS/JavaScript market workbench with native WebGPU geometry and an independent Canvas fallback. The application includes 26 chart styles, 84 configurable studies, 66 drawing tools, editable 16-chart layouts, bounded scripting, causal pattern scans, financial models and opt-in private services.
 
 This is an independent implementation, with explicitly documented supported APIs and operating limits. The precise implementation inventory, model approximations, engine-only surfaces and remaining provider/product gaps are in [FEATURE_MATRIX.md](FEATURE_MATRIX.md).
 
@@ -16,7 +16,22 @@ npm start
 # http://localhost:4173/?demo — explicitly synthetic deterministic demonstration
 ```
 
-`npm test` runs 446 numerical, protocol, worker, state-machine, security and private-service tests. `npm run build` regenerates `dist/AureonTerminal.html`, including both worker bundles. Build before testing a source archive that omits the distribution; bundle tests intentionally require the real generated worker code.
+`npm test` runs 546 numerical, protocol, worker, state-machine, security and private-service tests. `npm run build` regenerates `dist/AureonTerminal.html`, including both worker bundles. Build before testing a source archive that omits the distribution; bundle tests intentionally require the real generated worker code.
+
+## New in 4.2
+
+**Studies** adds rolling median, quantile channels, interquartile range and normalized median deviation, residual-RMS regression channels, regression R²/error, log-return autocorrelation, return/volume-change correlation, directional efficiency and UTC-session VWAP deviation bands. New statistical kernels use a bounded float64 moment tree and an AVL order-statistics multiset; they do not fill gaps or read future samples.
+
+**Pro tools → Script tools → Parallel script screener** executes the selected editor indicator over your imported research universe, not an implicit exchange-wide dataset. Choose one UTC cutoff and 1–4 workers. Each scan captures source, inputs, libraries and fully closed raw bars; later input edits cannot change an in-flight scan. Current and previous values of all named plots support threshold and crossing filters, stable sorting, pagination, saved queries and CSV/JSON report export. Cancellation terminates only the screener's workers. Every dataset error stays visible; missing values are never fabricated as zeros. Clicking an eligible result opens the exact closed dataset used in that scan.
+
+Start with `examples/distribution-screen.aureon`. Use **Research → Import JSON** with the documented version-1 universe format; all supplied provenance labels remain visible. Screening accepts up to 100 datasets and 500,000 input bars, with a per-symbol interpreter budget. A workerless environment has a separate 10,000-bar/250,000-operation limit. Opening a row in the chart requires a supported chart interval and at most 100,000 bars; other rows remain analyzable/exportable.
+
+```sh
+npm run benchmark:statistics
+# Optional workload: node scripts/benchmark-statistics.mjs 20000 512
+```
+
+The benchmark compares float64 results with explicit reference implementations before reporting median-of-three CPU times. Results are specific to the machine and synthetic workload, not browser/GPU or tick-throughput guarantees.
 
 ## New in v4
 

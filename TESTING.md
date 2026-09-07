@@ -1,12 +1,12 @@
-# Aureon Terminal v4.1 verification
+# Aureon Terminal v4.2 verification
 
 Verification distinguishes executable source, local tests, real-origin browser tests, and external services. Archived earlier evidence is not proof that a new commit passes; the current commit's Actions runs are authoritative.
 
 ## Local checks
 
-- **479 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
-- Earlier v3 browser evidence is retained for history, not asserted as a new 4.1 run.
-- **6 new v4 static browser groups passed** through document injection, with no captured page JavaScript errors.
+- **546 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
+- Earlier v3/v4/v4.1 browser evidence is retained for history, not asserted as a new 4.2 result.
+- New v4.2 actual-origin browser results must be read from the current PR CI artifact; suite definitions are not passing evidence.
 - Source syntax checks, standalone generation and the current-file independent-product reference guard passed.
 
 The managed local Chromium policy blocks loopback navigation. Local browser results therefore do not establish authenticated collaboration, real browser worker transport, or service-worker installation. Node HTTP/worker tests run independently. The CI browser workflow runs both suites on a real permitted HTTP origin: 31 inherited groups and 11 v4 groups, including authenticated two-browser collaboration and pending-queue recovery. Consult that workflow's report for the actual outcome rather than treating the suite definition as a passing result.
@@ -57,3 +57,13 @@ Hardware WebGPU shader/device execution or throughput; credentialed production r
 `v41-features.test.js` checks realtime rollback and `varip`, explicit completed-bar rollover, ordering/clock/history/capacity rejection, independent job runtimes, workerless cancellation, indicator-only operation, diagonal/same-row footprint ratios, missing-row behavior, stacks, unknown-side volumes, deterministic POC/value areas, workspace validation and failed outbox batch retention.
 
 `verify-browser-v41.py` is invoked by the existing v4 HTTP harness, with reports under `verification/v4/next/`. Its eight browser groups exercise actual IndexedDB transaction/acknowledgement isolation, unavailable storage, closing a tab and recovering in a new one, replay rewind/exit, stale job removal, actual stateful workers, realtime UI with an explicitly injected validated trade fixture, and footprint controls. Local managed Chromium blocks HTTP navigation, so these new secure-origin groups must be checked in CI; the test definitions alone are not passing evidence. No browser policy or application CSP is weakened.
+
+## 4.2 regression and benchmark scope
+
+`v42-statistics.test.js` checks full-window finite-pair rules, population/sample divisors, large-offset small-variance inputs, abrupt level changes, AVL invariants under duplicate insertions/deletions, sorted-reference quantiles/ranks, regression residuals and UTC-session volume-weighted bands. All 84 study registry entries also run the inherited prefix-causality and finite-output checks. Script tests exercise the six new named statistical built-ins, per-call-site isolation, parameter validation and budget exhaustion.
+
+`v42-screening.test.js` covers frozen cutoff/source/data copies, provisional/future exclusion, higher-timeframe lookahead prevention, actual Node-worker session messages, scalar transfer size, parse resets, strategy rejection, per-symbol errors, deterministic sorting, missing values, column crossings, formula-safe CSV, query round-trip, pool cancellation, late progress suppression, worker disposal and restricted fallback budgets.
+
+`verify-browser-v42.py` is chained after v4.1 by the normal browser CI entry point. Ten new groups exercise the studies catalogue, editor statistics, a two-worker scan, actual filter/sort forms, CSV download, saved query reload, immutable snapshots, independent cancellation, opening the exact captured dataset and mobile layout. HTTP mode requires real workers; `--document` explicitly models Worker unavailable and does not claim HTTP reload persistence or dedicated-worker success. It never relaxes application CSP or browser navigation policy. Evidence is under `verification/v4/statistics-screening/` (or `statistics-document/`).
+
+`npm run benchmark:statistics` reports one warm-up and median-of-three CPU timings over deterministic synthetic float64 prices, after checking results against independent reference loops/sorts. It controls neither GC nor CPU isolation, imposes no timing thresholds in CI, and establishes no GPU, browser, multi-client or feed-throughput guarantee.

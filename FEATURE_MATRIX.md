@@ -1,4 +1,4 @@
-# Aureon Terminal 4.1 — implementation inventory
+# Aureon Terminal 4.2 — implementation inventory
 
 Aureon is an independent implementation. This document describes executable source and its actual interfaces, not certification, ownership of market-data rights, or equivalence to another product. Unsupported syntax and unavailable datasets fail explicitly. Tests and operating limits are documented separately in `TESTING.md` and `SECURITY.md`.
 
@@ -7,7 +7,8 @@ Aureon is an independent implementation. This document describes executable sour
 | Capability | Implemented | Limits |
 |---|---|---|
 | Rendering | Native instanced WebGPU rectangles/segments; float64 financial calculations projected to local GPU pixels; independent Canvas renderer | Text is a Canvas overlay. Hardware GPU execution and throughput have not been verified in this environment. |
-| Chart catalogue | 26 registered chart styles, 73 configurable study types, 66 drawing tools | Counts describe the actual registries, not an unlimited catalogue. Statistical warm-up gaps are preserved. |
+| Chart catalogue | 26 registered chart styles, 84 configurable study types, 66 drawing tools | Counts describe the actual registries, not an unlimited catalogue. Statistical warm-up gaps are preserved. |
+| Rolling distribution studies — new | AVL median/quantiles, centered-moment regression/correlation/variance and UTC bucket weighted deviation bands | O(log window) rolling updates; float64, not arbitrary precision. Strict gaps/warm-up; fixed UTC buckets are not exchange calendars. |
 | Observed-trade charts | Footprint, TPO, tick-count, volume and range views; configurable diagonal/same-row and stacked imbalances, deterministic POC/value area; aggressor/unknown classification and explicit provenance | Only supplied/received observations; no reconstruction of missing exchange prints. Older close-derived Renko/Kagi/P&F/line-break modes remain labeled approximations. |
 | Patterns | Confirmation-delayed candlestick, pivot, chart, harmonic and constrained Elliott candidates | Rule-based candidates, not accuracy or forecasting guarantees. |
 | Multi-chart editing | 1/2/4/6/8/16 charts with individual drawings, undo, studies, scale and history; linked navigation | Primary instrument retains execution focus. Secondary trade history starts from received observations. |
@@ -28,7 +29,10 @@ Aureon is an independent implementation. This document describes executable sour
 | Replay and graphics | Initial replay seek, rewind and exit recompute the correct prefix; generation and data guards discard stale worker output; low-level direct cutoffs hide future mutations | A direct cutoff is not a retained-object historical database. Recompute the prefix to recover earlier versions. |
 | Causal broker feedback — new | Position, average price, equity, initial capital, realized/open profit, open/closed trades and win/loss counters during portfolio script execution | Confirmed-close evaluation after that bar's simulated market processing; commands first execute on the next raw bar/print. Not a full event-by-event broker runtime. |
 | Realtime | Explicit editor start/stop and a dedicated sequenced worker session; ordinary rollback, `varip`, `barstate.isnew`; supplied closed lower-timeframe arrays | Indicators only, at most 5,000 seed bars in UI / 64 queued observations. Each update re-evaluates bounded history; capacity, feed reconnection or authoritative history changes stop rather than silently drop observations. No throughput claim, hidden fetches or future lookahead. |
-| Screening/profiling | Bounded explicitly loaded universe; operation and heap profiles | Not a distributed exchange-wide database or CPU/GPU performance certification. |
+| Statistical built-ins — new | Rolling median, linearly interpolated/nearest-rank percentiles, population/sample variance and covariance, paired correlation; named arguments and per-call-site state | Strict full-window finite observations; fixed parameters per call site; charged heap/operation budgets. Not an exhaustive builtin catalogue. |
+| Parallel script screening — new | Frozen source/input/library/data snapshots, shared closed-bar cutoff, 1–4 independently cancellable workers, scalar current/previous columns, explicit dataset errors | Imported OHLCV only; at most 100 datasets, 500,000 input bars, 250,000 bars per dataset and 1,000,000 replicated closed bars across worker seeds. No network fetches or broker execution. Workerless fallback: 10,000 total bars and 250,000 operations per symbol. |
+| Screening queries/reports — new | Up to 16 allowlisted predicates; numeric/text comparisons and crossings; missing-value predicates; stable sorting, pagination, 20 saved queries, formula-guarded CSV and snapshot JSON | At most 16 plots per symbol / 64 distinct titles. Only completed scans export. Snapshot chart opening requires supported chart intervals and at most 100,000 bars. Results are research, not executable quotes. |
+| Profiling | Deterministic operation/heap profiles and reproducible rolling-statistics CPU microbenchmark | Not GPU performance certification or a distributed exchange-wide screening database. |
 
 ## Simulation and analytics
 

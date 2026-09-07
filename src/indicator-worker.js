@@ -1,0 +1,2 @@
+import {computeIndicators,backtest} from './indicators.js';
+self.onmessage=({data})=>{const{id,type,bars,options}=data;try{const result=type==='backtest'?backtest(bars,options):computeIndicators(bars);const transfers=[];function visit(x){if(ArrayBuffer.isView(x))transfers.push(x.buffer);else if(x&&typeof x==='object')for(const v of Object.values(x))visit(v);}if(type!=='backtest')visit(result);self.postMessage({id,result},transfers);}catch(error){self.postMessage({id,error:error.message});}};

@@ -1,0 +1,25 @@
+{
+  "loading": "standalone injected into administrator-restricted about:blank",
+  "backend": "Canvas 2D",
+  "workerActive": false,
+  "passed": 14,
+  "checks": [
+    "boot, computed studies, visible candle geometry, explicit data provenance",
+    "indicator dialog changes studies and pane geometry",
+    "six chart types render from the same source OHLCV",
+    "pointer-anchored wheel zoom and fit",
+    "two-point drawing creation, horizontal levels, undo/redo, object list",
+    "backtest client, computed trades, equity curve",
+    "replay truncates visible history and clears future backtest markers",
+    "alert creation; fake/demo quotes cannot execute paper orders",
+    "second chart has an independent data series and explicit provenance",
+    "dark and light chart / workspace themes",
+    "workspace JSON import preserves semantic drawings and validates OHLCV",
+    "real chart PNG export",
+    "imported OHLCV resampling preserves candles instead of fabricating smaller bars",
+    "responsive desktop layout"
+  ],
+  "javascriptErrors": [],
+  "productionNetworkTested": false,
+  "webgpuHardwareTested": false
+}

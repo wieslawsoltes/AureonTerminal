@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Aureon Terminal — a WebGPU-powered market workspace with live charts, technical analysis, and local paper trading.">
+<meta name="theme-color" content="#101419"><title>Aureon Terminal — Market workspace</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="app-header">
+    <a class="brand" href="./" aria-label="Aureon Terminal home"><span class="brand-mark">A</span><span>AUREON<span class="brand-sub">TERMINAL</span></span></a>
+    <span class="header-divider"></span><button class="workspace-name" data-action="layout-menu">Market workspace <span class="muted">⌄</span></button>
+    <button class="global-search" data-action="search"><span data-icon="search"></span><span>Search markets</span><kbd>⌘ K</kbd></button>
+    <div class="header-spacer"></div><span class="header-time" id="header-time">UTC</span>
+    <button class="save-button" data-action="save"><span data-icon="cloud"></span><span id="saved-label">Save layout</span></button>
+    <button class="icon-button" title="Workspace settings" data-action="settings" data-icon="settings"></button><button class="profile-button" data-action="help" title="Help & keyboard shortcuts">AT</button>
+  </header>
+  <nav class="chart-toolbar" aria-label="Chart controls">
+    <button class="symbol-button" data-action="search"><span class="asset-coin small" id="toolbar-coin">₿</span><b id="toolbar-symbol">BTCUSD</b><span class="muted">⌄</span></button>
+    <span class="toolbar-separator"></span><div class="interval-buttons" id="intervals">
+      <button data-interval="60">1m</button><button data-interval="300">5m</button><button data-interval="900">15m</button><button data-interval="3600" class="active">1h</button><button data-interval="14400">4h</button><button data-interval="86400">D</button>
+    </div><button class="icon-button narrow" data-action="timeframes" title="More intervals" data-icon="chevron"></button>
+    <span class="toolbar-separator"></span><button class="toolbar-button" data-action="chart-style" title="Chart type"><span data-icon="candles"></span><span id="style-label">Candles</span><span class="tiny muted">⌄</span></button>
+    <span class="toolbar-separator"></span><button class="toolbar-button" data-action="indicators"><span class="function-icon">ƒx</span><span>Indicators</span></button>
+    <button class="toolbar-button" data-action="compare"><span data-icon="compare"></span><span>Compare</span></button>
+    <span class="toolbar-separator"></span><button class="toolbar-button" data-action="alert"><span data-icon="alert"></span><span>Alert</span></button>
+    <button class="toolbar-button" id="replay-toggle" data-action="replay"><span data-icon="replay"></span><span>Replay</span></button>
+    <span class="toolbar-separator"></span><button class="icon-button" data-action="undo" title="Undo drawing (Ctrl/Cmd+Z)" data-icon="undo"></button><button class="icon-button" data-action="redo" title="Redo drawing (Ctrl/Cmd+Shift+Z)" data-icon="redo"></button>
+    <div class="header-spacer"></div><button class="icon-button" data-action="split" title="Toggle two-chart layout" data-icon="layout"></button><button class="icon-button" data-action="snapshot" title="Export chart PNG" data-icon="camera"></button><button class="icon-button" data-action="fullscreen" title="Full screen" data-icon="fullscreen"></button>
+  </nav>
+  <main class="workspace">
+    <aside class="drawing-toolbar" aria-label="Drawing tools">
+      <div id="drawing-tools"></div><div class="drawing-spacer"></div>
+      <button class="tool-button" data-action="snap" title="Snap to candle OHLC (M)" data-icon="magnet"></button>
+      <button class="tool-button" data-action="lock" title="Lock all drawings" data-icon="lock"></button>
+      <button class="tool-button" data-action="hide-drawings" title="Show or hide drawings" data-icon="eye"></button>
+      <span class="tool-divider"></span><button class="tool-button" data-action="delete-drawing" title="Delete selected drawing (Delete)" data-icon="trash"></button>
+      <button class="tool-button" data-action="help" title="Help & shortcuts (?)" data-icon="help"></button>
+    </aside>
+    <section class="center-workspace">
+      <div class="chart-stack" id="chart-stack">
+        <section class="chart-pane" id="main-pane">
+          <div class="chart-engine" id="primary-chart"></div>
+          <div class="chart-heading"><div class="chart-title"><strong id="chart-name">Bitcoin / U.S. Dollar</strong><span class="title-dot">·</span><span id="chart-interval">1h</span><span class="title-dot">·</span><span class="exchange-name">COINBASE</span><span class="feed-badge demo" id="feed-badge">CONNECTING</span></div><div class="ohlc-line" id="ohlc-line"></div></div>
+          <div class="indicator-legend" id="indicator-legend"></div>
+          <div class="source-banner" id="source-banner"><span class="status-dot"></span><span id="source-text">Connecting to public market data…</span><button data-action="reconnect">Retry</button></div>
+          <div class="floating-navigation"><button data-action="zoom-out" title="Zoom out">−</button><button data-action="fit" title="Fit chart" data-icon="fit"></button><button data-action="zoom-in" title="Zoom in">+</button><span></span><button data-action="latest" title="Go to latest bar" data-icon="latest"></button></div>
+          <div class="replay-controls" id="replay-controls" hidden><span class="replay-badge">BAR REPLAY</span><button data-action="replay-play" id="replay-play" title="Play or pause">▶</button><button data-action="replay-step" title="Next bar">▸|</button><input type="range" id="replay-position" min="30" max="1000" value="600" aria-label="Replay position"><select id="replay-speed" aria-label="Replay speed"><option value="800">1×</option><option value="300">3×</option><option value="100">8×</option></select><button data-action="replay" title="Exit replay">✕</button></div>
+        </section>
+        <section class="chart-pane comparison-pane" id="comparison-pane" hidden><div class="chart-engine" id="comparison-chart"></div><div class="chart-heading"><div class="chart-title"><strong id="comparison-name">Ethereum / U.S. Dollar</strong><span class="title-dot">·</span><span id="comparison-source">Comparison</span><button class="inline-icon" data-action="compare" title="Change comparison">⌄</button><button class="inline-icon" data-action="split" title="Close comparison">✕</button></div></div></section>
+      </div>
+      <div class="range-bar"><div class="range-buttons"><button data-range="86400">1D</button><button data-range="432000">5D</button><button data-range="2592000">1M</button><button data-range="7776000">3M</button><button data-range="15552000">6M</button><button data-range="31536000">1Y</button><button data-range="all">All</button></div><span class="range-status" id="bar-count">— bars</span><div class="header-spacer"></div><span class="timezone">UTC</span><button class="scale-button" data-scale="percent">%</button><button class="scale-button" data-scale="log">log</button><button class="scale-button active" data-scale="linear">auto</button></div>
+      <div class="panel-resizer" id="panel-resizer" role="separator" aria-label="Resize analysis panel" aria-orientation="horizontal" tabindex="0"></div>
+      <section class="analysis-panel" id="analysis-panel">
+        <nav class="panel-tabs" aria-label="Analysis panels"><button data-panel="overview" class="active">Market overview</button><button data-panel="strategy">Strategy tester</button><button data-panel="paper">Paper trading <span class="tab-tag">SIM</span></button><button data-panel="data">Data window</button><button data-panel="alerts">Alerts <span id="alert-count" class="count-badge">0</span></button><div class="header-spacer"></div><button class="icon-button" data-action="toggle-panel" title="Minimize analysis panel" data-icon="chevron"></button></nav>
+        <div class="panel-content" id="panel-content"></div>
+      </section>
+    </section>
+    <aside class="right-sidebar" id="right-sidebar">
+      <div class="sidebar-heading"><span>Watchlist</span><div><button class="icon-button" data-action="search" title="Add or select a symbol" data-icon="plus"></button><button class="icon-button" data-action="watchlist-menu" title="Watchlist options" data-icon="more"></button></div></div>
+      <div class="watchlist-columns"><span>Symbol</span><span>Last</span><span>Chg%</span></div><div id="watchlist" class="watchlist"></div>
+      <div class="watchlist-footer"><span class="status-dot" id="watchlist-dot"></span><span id="watchlist-source">Coinbase public markets</span></div>
+      <section class="instrument-details">
+        <div class="instrument-identity"><span class="asset-coin" id="detail-coin">₿</span><div><h2 id="detail-symbol">BTCUSD</h2><span id="detail-name">Bitcoin / U.S. Dollar</span></div><span class="spot-tag">SPOT</span></div>
+        <div class="detail-price"><span id="detail-price">—</span><span class="currency">USD</span></div><div class="detail-change" id="detail-change">Waiting for market data</div>
+        <div class="session-state"><span class="status-dot"></span><span id="session-text">24 / 7 crypto market</span></div>
+        <div class="detail-stat-grid"><div><span>24h volume <small id="volume-unit">BTC</small></span><b id="detail-volume">—</b></div><div><span>24h change</span><b id="detail-percent">—</b></div></div>
+        <div class="day-range"><div><span>24h low</span><span>24h high</span></div><div class="day-range-numbers"><span id="detail-low">—</span><span id="detail-high">—</span></div><div class="range-track"><span id="range-marker"></span></div></div>
+        <div class="quote-buttons"><button class="sell-quote" data-side="sell"><span id="sell-price">—</span><small>SELL · PAPER</small></button><button class="buy-quote" data-side="buy"><span id="buy-price">—</span><small>BUY · PAPER</small></button></div>
+      </section>
+      <nav class="depth-tabs"><button class="active" data-depth="book">Order book</button><button data-depth="trades">Recent trades</button><button data-depth="drawings">Objects</button></nav><div class="depth-content" id="depth-content"><div class="empty-state"><span data-icon="depth"></span><p>Order book loads with a live connection.</p></div></div>
+    </aside>
+    <aside class="right-rail"><button class="tool-button active" data-action="sidebar" title="Toggle watchlist" data-icon="watchlist"></button><button class="tool-button" data-action="show-alerts" title="Alerts" data-icon="alert"></button><button class="tool-button" data-action="show-objects" title="Drawing objects" data-icon="layers"></button><button class="tool-button" data-action="show-data" title="Data window" data-icon="data"></button><div class="drawing-spacer"></div><button class="tool-button" data-action="export-menu" title="Import / export" data-icon="export"></button><button class="tool-button" data-action="help" title="About Aureon" data-icon="help"></button></aside>
+  </main>
+  <footer class="status-bar"><span class="engine-status"><span class="engine-dot"></span><b id="renderer-label">Initializing renderer</b><span id="render-metrics"></span></span><span id="connection-status">Connecting</span><div class="header-spacer"></div><span id="storage-status">Local workspace</span><span class="footer-divider">|</span><span>READ-ONLY MARKET DATA · PAPER ORDERS ONLY</span><span class="version">v1.0</span></footer>
+</div>
+<dialog id="modal"><div class="modal-heading"><h2 id="modal-title"></h2><button class="icon-button" data-action="close-modal" aria-label="Close dialog">✕</button></div><div id="modal-content"></div></dialog>
+<div class="popup-menu" id="popup-menu" hidden></div><div class="toast-stack" id="toasts" role="status" aria-live="polite"></div>
+<input type="file" id="file-input" hidden accept=".json,.csv">
+<script type="module" src="./src/app.js"></script>
+</body></html>

@@ -102,3 +102,13 @@ Adapter diagnostics include `GPUAdapterInfo.device` and the standardized fallbac
 flag without treating empty descriptive labels as a failed renderer. Native and
 standalone release labels and offline cache identity are generated from the same
 package release value; persistent workspace schema versions remain unchanged.
+
+
+The native Chromium trace identified a test-host compositor failure: forcing
+ANGLE Vulkan required unavailable VK_KHR_surface/VK_KHR_xcb_surface extensions,
+then WebGPU swap-chain shared images could not be allocated and the browser
+terminated devices. The verifier now uses Chromium's Vulkan/SwiftShader pixel-test
+combination (ANGLE SwiftShader, Vulkan SwiftShader and disabled Vulkan surfaces).
+It additionally decodes a browser-compositor screenshot and checks exact visible
+WebGPU canvas pixels, independently of offscreen readback. Application code and
+all lifecycle/pixel assertions remain unchanged by this host correction.

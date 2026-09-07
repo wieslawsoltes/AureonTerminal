@@ -2,12 +2,14 @@
 The software backend verifies actual WGSL/device execution, not hardware speed.
 Runs on a real loopback origin in CI; local administrator policies are not bypassed.
 """
-import asyncio,json,os,socket,subprocess,tempfile,time
+import asyncio,base64,json,os,socket,subprocess,tempfile,time
 from pathlib import Path
 from playwright.async_api import async_playwright
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'verification'/'v4'/'renderer'
-GPU_FLAGS=['--enable-unsafe-webgpu','--use-webgpu-adapter=swiftshader','--use-vulkan=swiftshader','--use-angle=vulkan','--enable-features=Vulkan','--disable-vulkan-surface']
+# Match Chromium's Vulkan/SwiftShader pixel-test configuration: the compositor
+# uses ANGLE-on-SwiftShader, not ANGLE Vulkan requiring unavailable WSI extensions.
+GPU_FLAGS=['--enable-unsafe-webgpu','--use-webgpu-adapter=swiftshader','--use-vulkan=swiftshader','--use-angle=swiftshader','--enable-unsafe-swiftshader','--enable-features=Vulkan','--disable-vulkan-surface']
 async def main():
     OUT.mkdir(parents=True,exist_ok=True);tests=[];errors=[];warnings=[];adapter=None;version=None
     with tempfile.TemporaryDirectory(prefix='aureon-v43-') as private:
@@ -41,6 +43,30 @@ async def main():
                     result=await page.evaluate('''async()=>{const r=aureon.app.chart.renderer;await r.ready;aureon.app.chart.draw();if(r.mode!=='WebGPU')throw Error(r.reason);if(!r.diagnostics().stats.gpuFrames)throw Error('No actual GPU frame');const info=r.diagnostics();if(info.adapter.fallback!==true&&!/swiftshader/i.test(JSON.stringify(info.adapter)))throw Error('Expected fallback-adapter signal or software identity: '+JSON.stringify(info.adapter));if(document.querySelector('.version').textContent!=='v'+aureon.releaseVersion||aureon.releaseVersion!=='4.3.0')throw Error('Release identity differs');return info;}''')
                     adapter=result['adapter'];return result
                 await check('Actual application acquires SwiftShader and submits its native WGSL pipeline',device)
+                async def presentation():
+                    try:
+                        await page.evaluate('''async()=>{
+                          const {Renderer,RendererDevicePool,Geometry,rgba}=await import('./src/renderer.js');
+                          const pool=new RendererDevicePool(),canvas=document.createElement('canvas');
+                          canvas.id='gpu-presentation-fixture';canvas.style.cssText='position:fixed;left:8px;top:8px;z-index:2147483647';document.body.append(canvas);
+                          const r=new Renderer(canvas,document.createElement('canvas'),null,{pool,samples:4});
+                          globalThis.rendererPresentationFixture={r,pool,canvas};await r.ready;if(r.mode!=='WebGPU')throw Error(r.reason);
+                          r.resize(64,64,1);const g=new Geometry();g.rect(4,4,24,24,rgba('#ff0000'));g.rect(36,36,20,20,rgba('#00ff00'));r.render(g,rgba('#000000'));
+                          await r.device.queue.onSubmittedWorkDone();await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
+                        }''')
+                        png=await page.locator('#gpu-presentation-fixture').screenshot()
+                        (OUT/'gpu-presentation.png').write_bytes(png)
+                        return await page.evaluate('''async png=>{
+                          const image=new Image();image.src='data:image/png;base64,'+png;await image.decode();
+                          const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;
+                          const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);
+                          const samples=[[8,8,[255,0,0,255]],[44,44,[0,255,0,255]],[1,1,[0,0,0,255]]];
+                          for(const [x,y,expected]of samples){const actual=ctx.getImageData(x,y,1,1).data;if(actual.some((v,i)=>Math.abs(v-expected[i])>1))throw Error('Presented WebGPU pixel differs: '+x+','+y+' '+[...actual]);}
+                          if(rendererPresentationFixture.r.mode!=='WebGPU')throw Error('Presentation used fallback');return{width:image.width,height:image.height,presentedPixelSamples:samples.length,renderer:'WebGPU',source:'Browser compositor screenshot, not offscreen readback'};
+                        }''',base64.b64encode(png).decode('ascii'))
+                    finally:
+                        await page.evaluate('()=>{const x=globalThis.rendererPresentationFixture;if(x){x.r.destroy();x.pool.destroy();x.canvas.remove();delete globalThis.rendererPresentationFixture;}}')
+                await check('Browser compositor presents actual WebGPU canvas pixels',presentation)
                 async def pixels():
                     return await page.evaluate('''async()=>{const{rendererPixelCheck}=await import('./src/renderer-health.js');const result=await rendererPixelCheck();if(!result.passed||result.mode!=='WebGPU'||result.tests.length!==6)throw Error(JSON.stringify(result));return result;}''')
                 await check('Six GPU readback fixtures verify opaque rectangles, alpha, line and clear pixels',pixels)

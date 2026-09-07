@@ -1,0 +1,20 @@
+name: Export v4 implementation baseline
+on:
+  push:
+    branches: [transfer/export-v4]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 01853284786388922cb475245e7c030b55f17e42
+      - name: Export tracked source
+        run: git archive --format=zip --output="$RUNNER_TEMP/aureon-baseline.zip" HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aureon-v4-baseline
+          path: ${{ runner.temp }}/aureon-baseline.zip
+          retention-days: 1

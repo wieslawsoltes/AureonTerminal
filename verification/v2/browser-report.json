@@ -1,0 +1,408 @@
+{
+  "environment": {
+    "renderer": "Canvas 2D",
+    "rendererReason": "WebGPU is unavailable",
+    "workerActive": false,
+    "workerFallbackReason": "Worker unavailable or blocked by browser policy",
+    "secureContext": false,
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+    "syntheticDemo": true
+  },
+  "tests": [
+    {
+      "name": "Startup and explicit synthetic provenance",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "renderer": "Canvas 2D"
+      },
+      "milliseconds": 9.83
+    },
+    {
+      "name": "Open panel: script",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 11.58
+    },
+    {
+      "name": "Open panel: lab",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 76.39
+    },
+    {
+      "name": "Open panel: screener",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 71.82
+    },
+    {
+      "name": "Open panel: research",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 17.93
+    },
+    {
+      "name": "Open panel: flow",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 18.45
+    },
+    {
+      "name": "Open panel: ledger",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 44.5
+    },
+    {
+      "name": "Open panel: rules",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 18.33
+    },
+    {
+      "name": "Open panel: library",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 8.01
+    },
+    {
+      "name": "Open panel: services",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 5.17
+    },
+    {
+      "name": "Add and parameter-edit independent study instances through UI",
+      "passed": true,
+      "detail": [
+        {
+          "name": "Exponential moving average",
+          "plots": 1
+        },
+        {
+          "name": "Bollinger Bands",
+          "plots": 3
+        }
+      ],
+      "milliseconds": 731.98
+    },
+    {
+      "name": "Render chart style: candles",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 1886
+      },
+      "milliseconds": 13.84
+    },
+    {
+      "name": "Render chart style: hollow",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 2190
+      },
+      "milliseconds": 13.13
+    },
+    {
+      "name": "Render chart style: bars",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 2029
+      },
+      "milliseconds": 18.2
+    },
+    {
+      "name": "Render chart style: line",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 1741
+      },
+      "milliseconds": 16.08
+    },
+    {
+      "name": "Render chart style: area",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 1886
+      },
+      "milliseconds": 16.04
+    },
+    {
+      "name": "Render chart style: heikin",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 1886
+      },
+      "milliseconds": 21.7
+    },
+    {
+      "name": "Render chart style: step",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 1885
+      },
+      "milliseconds": 12.97
+    },
+    {
+      "name": "Render chart style: baseline",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 1885
+      },
+      "milliseconds": 59.55
+    },
+    {
+      "name": "Render chart style: columns",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 1741
+      },
+      "milliseconds": 26.1
+    },
+    {
+      "name": "Render chart style: hlc",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1000,
+        "primitives": 1885
+      },
+      "milliseconds": 27.98
+    },
+    {
+      "name": "Render chart style: renko",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 944,
+        "primitives": 1886
+      },
+      "milliseconds": 45.52
+    },
+    {
+      "name": "Render chart style: linebreak",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 340,
+        "primitives": 1885
+      },
+      "milliseconds": 32.29
+    },
+    {
+      "name": "Render chart style: kagi",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 375,
+        "primitives": 1884
+      },
+      "milliseconds": 30.27
+    },
+    {
+      "name": "Render chart style: pnf",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 126,
+        "primitives": 7955
+      },
+      "milliseconds": 51.74
+    },
+    {
+      "name": "Render chart style: range",
+      "passed": true,
+      "detail": {
+        "raw": 1000,
+        "display": 1264,
+        "primitives": 1885
+      },
+      "milliseconds": 45.59
+    },
+    {
+      "name": "Three-anchor channel, freehand brush and undo/redo",
+      "passed": true,
+      "detail": {
+        "channel": "3 anchors",
+        "brush": "pointer stroke",
+        "undoRedo": true
+      },
+      "milliseconds": 621.84
+    },
+    {
+      "name": "Object grouping and locking via object manager",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 1313.53
+    },
+    {
+      "name": "Edit, execute and re-parameterize a real script",
+      "passed": true,
+      "detail": {
+        "plots": 1,
+        "bars": 1000
+      },
+      "milliseconds": 713.57
+    },
+    {
+      "name": "Script diagnostic rejects network access then recovers",
+      "passed": true,
+      "detail": "Line 1:6: Forbidden identifier",
+      "milliseconds": 189.46
+    },
+    {
+      "name": "Volume-profile calculation and timezone/session settings",
+      "passed": true,
+      "detail": {
+        "profile": "ohlc",
+        "zone": "Europe/Warsaw"
+      },
+      "milliseconds": 1341.79
+    },
+    {
+      "name": "Multi-chart layout 2",
+      "passed": true,
+      "detail": {
+        "charts": 2
+      },
+      "milliseconds": 32.89
+    },
+    {
+      "name": "Multi-chart layout 4",
+      "passed": true,
+      "detail": {
+        "charts": 4
+      },
+      "milliseconds": 35.69
+    },
+    {
+      "name": "Multi-chart layout 6",
+      "passed": true,
+      "detail": {
+        "charts": 6
+      },
+      "milliseconds": 40.39
+    },
+    {
+      "name": "Multi-chart layout 8",
+      "passed": true,
+      "detail": {
+        "charts": 8
+      },
+      "milliseconds": 63.77
+    },
+    {
+      "name": "Multi-chart layout 1",
+      "passed": true,
+      "detail": {
+        "charts": 1
+      },
+      "milliseconds": 39.32
+    },
+    {
+      "name": "Computed relative comparison preserves raw primary data",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 5.81
+    },
+    {
+      "name": "Advanced strategy tester generates actual executions/equity",
+      "passed": true,
+      "detail": {
+        "trades": 31,
+        "fees": 6082.9651578961575,
+        "equityPoints": 1000
+      },
+      "milliseconds": 992.92
+    },
+    {
+      "name": "Training-only selection and separate holdout sweep",
+      "passed": true,
+      "detail": {
+        "runs": 12,
+        "holdoutBars": 300
+      },
+      "milliseconds": 204.55
+    },
+    {
+      "name": "Replay order ticket, next-bar execution and rewind protection",
+      "passed": true,
+      "detail": {
+        "nextBarFill": true,
+        "rewindProtection": true
+      },
+      "milliseconds": 330.32
+    },
+    {
+      "name": "Screener scan, computed heatmap and numeric filters",
+      "passed": true,
+      "detail": {
+        "computedSymbols": 8,
+        "filterWorks": true
+      },
+      "milliseconds": 319.5
+    },
+    {
+      "name": "Research JSON import, calendar/fundamentals rendering and HTML safety",
+      "passed": true,
+      "detail": {
+        "events": 1,
+        "fundamentals": 1,
+        "safeImportedNews": true
+      },
+      "milliseconds": 101.7
+    },
+    {
+      "name": "Workspace + scripts/studies/drawings/data round-trip",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "drawings": 2,
+        "source": "Verified imported historical fixture"
+      },
+      "milliseconds": 59.44
+    },
+    {
+      "name": "Chart PNG contains a nonempty actual rendering",
+      "passed": true,
+      "detail": {
+        "mime": "image/png",
+        "bytes": 145830
+      },
+      "milliseconds": 105.34
+    },
+    {
+      "name": "Light/dark theme switch",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 49.48
+    },
+    {
+      "name": "All original data and paper panels still render",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 47.19
+    }
+  ],
+  "passed": 46,
+  "failed": 0,
+  "pageErrors": []
+}

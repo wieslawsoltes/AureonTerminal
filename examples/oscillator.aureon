@@ -1,0 +1,7 @@
+indicator("Relative strength", overlay=false)
+n = input.int(14, "Length", minval=1, maxval=500)
+r = ta.rsi(close, n)
+plot(r, "RSI", color.purple, 2)
+hline(70, "Overbought", color.red)
+hline(30, "Oversold", color.green)
+alertcondition(ta.crossover(r, 30), "RSI recovery", "RSI crossed above 30")

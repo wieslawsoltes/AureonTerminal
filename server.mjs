@@ -1,30 +1,9 @@
-/** Dependency-free local server. Optional fixed-host REST proxy; no credentials. */
-import http from 'node:http';
-import {readFile,stat} from 'node:fs/promises';
-import {resolve,extname,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
-const root=fileURLToPath(new URL('.',import.meta.url)),port=Number(process.env.PORT||4173);
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.md':'text/plain; charset=utf-8'};
-const cache=new Map();let nextAllowed=0;
-const server=http.createServer(async(req,res)=>{
- try{
-  if(!['GET','HEAD'].includes(req.method)){res.writeHead(405);res.end('Read-only server.');return;}
-  const url=new URL(req.url,'http://localhost');
-  res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
-  if(url.pathname.startsWith('/api/')){
-    const p=url.pathname.slice(4);
-    if(!/^\/products(?:\/[A-Z0-9.-]{1,32}(?:\/(candles|stats|ticker|book))?)?$/.test(p)){res.writeHead(400);res.end('Unsupported public market endpoint.');return;}
-    for(const k of url.searchParams.keys())if(!['granularity','start','end','level'].includes(k)){res.writeHead(400);res.end('Unsupported query.');return;}
-    const key=p+url.search,old=cache.get(key);if(old&&old.expires>Date.now()){res.writeHead(200,{'Content-Type':'application/json'});res.end(old.body);return;}
-    if(Date.now()<nextAllowed){res.writeHead(429,{'Retry-After':'1'});res.end('Slow down.');return;}nextAllowed=Date.now()+120;
-    const r=await fetch('https://api.exchange.coinbase.com'+key,{signal:AbortSignal.timeout(12000),headers:{'User-Agent':'AureonTerminal/1.0','Accept':'application/json'}});
-    const body=await r.text();if(r.ok){cache.set(key,{body,expires:Date.now()+(p.endsWith('/candles')?15000:3000)});if(cache.size>300)cache.delete(cache.keys().next().value);}
-    res.writeHead(r.status,{'Content-Type':'application/json'});res.end(body);return;
-  }
-  let pathname=decodeURIComponent(url.pathname);if(pathname==='/'||pathname.endsWith('/'))pathname+='index.html';
-  const file=resolve(root,'.'+pathname);if(!file.startsWith(root.endsWith(sep)?root:root+sep)||pathname.split('/').some(x=>x.startsWith('.'))){res.writeHead(403);res.end('Forbidden');return;}
-  if(!(await stat(file)).isFile())throw new Error('Not found');
-  const body=await readFile(file);res.writeHead(200,{'Content-Type':mime[extname(file)]||'application/octet-stream','Cache-Control':'no-cache'});res.end(req.method==='HEAD'?undefined:body);
- }catch(e){res.writeHead(e.code==='ENOENT'?404:502,{'Content-Type':'text/plain'});res.end(e.code==='ENOENT'?'Not found':'Request failed. '+e.message);}
-});
-server.listen(port,'127.0.0.1',()=>console.log(`Aureon Terminal: http://localhost:${port}`));
+import {resolve} from 'node:path';
+import {createAureonServer} from './server/app.mjs';
+const root=fileURLToPath(new URL('.',import.meta.url));
+const app=await createAureonServer({root,dataDir:process.env.AUREON_DATA_DIR||resolve(root,'.aureon-data'),origin:process.env.AUREON_ORIGIN||'',key:process.env.APCA_API_KEY_ID||'',secret:process.env.APCA_API_SECRET_KEY||'',feed:process.env.ALPACA_DATA_FEED||'iex',brokerUser:process.env.AUREON_BROKER_USER||'',monitor:process.env.AUREON_MONITOR!=='0',monitorInterval:Number(process.env.AUREON_POLL_MS||15000),registration:process.env.AUREON_REGISTRATION!=='0'});
+const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||4173);
+if(!['127.0.0.1','::1','localhost'].includes(host)&&!process.env.AUREON_ORIGIN)throw new Error('Network binding requires an explicit AUREON_ORIGIN (and HTTPS reverse proxy for remote access).');
+app.server.listen(port,host,()=>console.log(`Aureon Terminal v2: ${process.env.AUREON_ORIGIN||'http://localhost:'+app.server.address().port}\nPrivate store: ${app.store.directory}\nExternal brokerage: PAPER ONLY; ${process.env.AUREON_BROKER_USER?'restricted to configured owner':'disabled'}`));
+let stopping=false;for(const sig of['SIGINT','SIGTERM'])process.on(sig,async()=>{if(stopping)return;stopping=true;await app.close();process.exit(0);});

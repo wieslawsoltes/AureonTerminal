@@ -1,0 +1,12 @@
+// AureonScript 1
+strategy("Dual moving-average strategy", overlay=true)
+fastLen = input.int(12, "Fast", minval=1, maxval=100)
+slowLen = input.int(26, "Slow", minval=2, maxval=300)
+fast = ta.ema(close, fastLen)
+slow = ta.ema(close, slowLen)
+plot(fast, "Fast", color.blue)
+plot(slow, "Slow", color.orange)
+if ta.crossover(fast, slow)
+    strategy.entry("Long", strategy.long)
+if ta.crossunder(fast, slow)
+    strategy.entry("Short", strategy.short)

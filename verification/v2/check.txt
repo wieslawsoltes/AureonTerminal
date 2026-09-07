@@ -1,0 +1,1376 @@
+
+> aureon-terminal@2.0.0 check
+> node scripts/check.mjs && npm test
+
+All JavaScript modules passed syntax validation.
+
+> aureon-terminal@2.0.0 test
+> node --test tests/*.test.js
+
+TAP version 13
+# Subtest: binary search handles empty, boundary and interior values
+ok 1 - binary search handles empty, boundary and interior values
+  ---
+  duration_ms: 6.609148
+  type: 'test'
+  ...
+# Subtest: OHLCV rejects NaN, invalid envelope, negative volume and fractional timestamps
+ok 2 - OHLCV rejects NaN, invalid envelope, negative volume and fractional timestamps
+  ---
+  duration_ms: 1.288359
+  type: 'test'
+  ...
+# Subtest: OHLCV normalizes ascending order and resolves duplicate timestamps last-write-wins
+ok 3 - OHLCV normalizes ascending order and resolves duplicate timestamps last-write-wins
+  ---
+  duration_ms: 0.676633
+  type: 'test'
+  ...
+# Subtest: Coinbase tuple adapter preserves correct low/high/open/close ordering
+ok 4 - Coinbase tuple adapter preserves correct low/high/open/close ordering
+  ---
+  duration_ms: 2.001384
+  type: 'test'
+  ...
+# Subtest: resampling preserves first open, extremes, final close and total volume
+ok 5 - resampling preserves first open, extremes, final close and total volume
+  ---
+  duration_ms: 0.725694
+  type: 'test'
+  ...
+# Subtest: no-trade gaps remain absent, not invented flat candles
+ok 6 - no-trade gaps remain absent, not invented flat candles
+  ---
+  duration_ms: 0.850004
+  type: 'test'
+  ...
+# Subtest: trade deduplication and out-of-order close updates are deterministic
+ok 7 - trade deduplication and out-of-order close updates are deterministic
+  ---
+  duration_ms: 0.570298
+  type: 'test'
+  ...
+# Subtest: initial REST cutoff rejects overlapping and pre-snapshot executions
+ok 8 - initial REST cutoff rejects overlapping and pre-snapshot executions
+  ---
+  duration_ms: 0.328137
+  type: 'test'
+  ...
+# Subtest: late ticks cannot silently alter finalized historical bars
+ok 9 - late ticks cannot silently alter finalized historical bars
+  ---
+  duration_ms: 0.977485
+  type: 'test'
+  ...
+# Subtest: Heikin-Ashi transforms causally without mutating source bars
+ok 10 - Heikin-Ashi transforms causally without mutating source bars
+  ---
+  duration_ms: 1.411314
+  type: 'test'
+  ...
+# Subtest: undo/redo are immutable, capped and branch-aware
+ok 11 - undo/redo are immutable, capped and branch-aware
+  ---
+  duration_ms: 1.635187
+  type: 'test'
+  ...
+# Subtest: CSV round trip preserves numerical values and timestamps
+ok 12 - CSV round trip preserves numerical values and timestamps
+  ---
+  duration_ms: 5.05569
+  type: 'test'
+  ...
+# Subtest: CSV supports quoted headers, CRLF, ISO UTC and Unix milliseconds
+ok 13 - CSV supports quoted headers, CRLF, ISO UTC and Unix milliseconds
+  ---
+  duration_ms: 0.537883
+  type: 'test'
+  ...
+# Subtest: CSV rejects missing cells, invalid headers and ambiguous local ISO dates
+ok 14 - CSV rejects missing cells, invalid headers and ambiguous local ISO dates
+  ---
+  duration_ms: 0.566284
+  type: 'test'
+  ...
+# Subtest: SMA uses complete windows and NaN warmup
+ok 15 - SMA uses complete windows and NaN warmup
+  ---
+  duration_ms: 0.510558
+  type: 'test'
+  ...
+# Subtest: EMA and Wilder smoothing use an arithmetic seed
+ok 16 - EMA and Wilder smoothing use an arithmetic seed
+  ---
+  duration_ms: 0.46608
+  type: 'test'
+  ...
+# Subtest: EMA resets on missing data, including signal-line warmup
+ok 17 - EMA resets on missing data, including signal-line warmup
+  ---
+  duration_ms: 0.545032
+  type: 'test'
+  ...
+# Subtest: RSI monotonic, falling and flat series handle division-by-zero
+ok 18 - RSI monotonic, falling and flat series handle division-by-zero
+  ---
+  duration_ms: 1.402051
+  type: 'test'
+  ...
+# Subtest: RSI matches Wilder reference initialization
+ok 19 - RSI matches Wilder reference initialization
+  ---
+  duration_ms: 0.334162
+  type: 'test'
+  ...
+# Subtest: Bollinger uses population standard deviation
+ok 20 - Bollinger uses population standard deviation
+  ---
+  duration_ms: 0.510939
+  type: 'test'
+  ...
+# Subtest: rolling Bollinger matches brute force on high-price inputs
+ok 21 - rolling Bollinger matches brute force on high-price inputs
+  ---
+  duration_ms: 32.715115
+  type: 'test'
+  ...
+# Subtest: MACD remains empty until slow and signal warmups complete
+ok 22 - MACD remains empty until slow and signal warmups complete
+  ---
+  duration_ms: 0.67965
+  type: 'test'
+  ...
+# Subtest: ATR includes overnight gaps and has Wilder initialization
+ok 23 - ATR includes overnight gaps and has Wilder initialization
+  ---
+  duration_ms: 0.427035
+  type: 'test'
+  ...
+# Subtest: UTC VWAP resets on new calendar days and handles zero volume
+ok 24 - UTC VWAP resets on new calendar days and handles zero volume
+  ---
+  duration_ms: 0.365147
+  type: 'test'
+  ...
+# Subtest: Stochastic deque extrema match a brute force sliding window
+ok 25 - Stochastic deque extrema match a brute force sliding window
+  ---
+  duration_ms: 8.617131
+  type: 'test'
+  ...
+# Subtest: OBV uses signed base volume and unchanged closes add zero
+ok 26 - OBV uses signed base volume and unchanged closes add zero
+  ---
+  duration_ms: 0.532817
+  type: 'test'
+  ...
+# Subtest: all indicators are causal under arbitrary future perturbations
+ok 27 - all indicators are causal under arbitrary future perturbations
+  ---
+  duration_ms: 7.017163
+  type: 'test'
+  ...
+# Subtest: backtest cash conservation under a flat market
+ok 28 - backtest cash conservation under a flat market
+  ---
+  duration_ms: 1.654086
+  type: 'test'
+  ...
+# Subtest: backtest executes at next open, includes fees and is deterministic
+ok 29 - backtest executes at next open, includes fees and is deterministic
+  ---
+  duration_ms: 6.342402
+  type: 'test'
+  ...
+# Subtest: backtest historical fills cannot depend on future data
+ok 30 - backtest historical fills cannot depend on future data
+  ---
+  duration_ms: 3.700524
+  type: 'test'
+  ...
+# Subtest: backtest rejects invalid periods and costs
+ok 31 - backtest rejects invalid periods and costs
+  ---
+  duration_ms: 1.517528
+  type: 'test'
+  ...
+# Subtest: paper market execution requires fresh bid/ask and cannot short
+ok 32 - paper market execution requires fresh bid/ask and cannot short
+  ---
+  duration_ms: 6.200591
+  type: 'test'
+  ...
+# Subtest: paper fills reconcile cash, inventory cost and realized P&L
+ok 33 - paper fills reconcile cash, inventory cost and realized P&L
+  ---
+  duration_ms: 0.339816
+  type: 'test'
+  ...
+# Subtest: paper limit orders fill at a better quote, cancelled orders never fill
+ok 34 - paper limit orders fill at a better quote, cancelled orders never fill
+  ---
+  duration_ms: 0.396834
+  type: 'test'
+  ...
+# Subtest: paper stop orders execute as market orders on observed trigger quotes
+ok 35 - paper stop orders execute as market orders on observed trigger quotes
+  ---
+  duration_ms: 0.148127
+  type: 'test'
+  ...
+# Subtest: insufficient cash at a pending-order trigger produces explicit rejection
+ok 36 - insufficient cash at a pending-order trigger produces explicit rejection
+  ---
+  duration_ms: 0.416536
+  type: 'test'
+  ...
+# Subtest: alerts are crossing-based, one-shot and direction-aware
+ok 37 - alerts are crossing-based, one-shot and direction-aware
+  ---
+  duration_ms: 0.439475
+  type: 'test'
+  ...
+# Subtest: workspace input rejects unsupported versions, arbitrary tools and invalid geometry
+ok 38 - workspace input rejects unsupported versions, arbitrary tools and invalid geometry
+  ---
+  duration_ms: 0.834109
+  type: 'test'
+  ...
+# Subtest: screen-space helpers return sensible tick intervals and hit distances
+ok 39 - screen-space helpers return sensible tick intervals and hit distances
+  ---
+  duration_ms: 0.252846
+  type: 'test'
+  ...
+# Subtest: synthetic fixtures are deterministic and valid, never tied to the live clock
+ok 40 - synthetic fixtures are deterministic and valid, never tied to the live clock
+  ---
+  duration_ms: 0.283498
+  type: 'test'
+  ...
+# Subtest: public WebSocket subscription uses documented ticker and heartbeat channels
+ok 41 - public WebSocket subscription uses documented ticker and heartbeat channels
+  ---
+  duration_ms: 4.091829
+  type: 'test'
+  ...
+# Subtest: ticker protocol parses numeric fields, trades, timestamps and 24h statistics
+ok 42 - ticker protocol parses numeric fields, trades, timestamps and 24h statistics
+  ---
+  duration_ms: 1.221983
+  type: 'test'
+  ...
+# Subtest: ticker snapshots cannot produce duplicate executions or regress trade time
+ok 43 - ticker snapshots cannot produce duplicate executions or regress trade time
+  ---
+  duration_ms: 1.169454
+  type: 'test'
+  ...
+# Subtest: malformed WebSocket JSON and invalid price events do not corrupt state
+ok 44 - malformed WebSocket JSON and invalid price events do not corrupt state
+  ---
+  duration_ms: 0.965407
+  type: 'test'
+  ...
+# Subtest: REST pagination requests provider-supported granularities and resamples 4h
+ok 45 - REST pagination requests provider-supported granularities and resamples 4h
+  ---
+  duration_ms: 5.11883
+  type: 'test'
+  ...
+# Subtest: weekly aggregation and live trades use Monday 00:00 UTC
+ok 46 - weekly aggregation and live trades use Monday 00:00 UTC
+  ---
+  duration_ms: 0.857281
+  type: 'test'
+  ...
+# Subtest: historical reconciliation preserves timestamp ordering metadata on untouched live bars
+ok 47 - historical reconciliation preserves timestamp ordering metadata on untouched live bars
+  ---
+  duration_ms: 0.951345
+  type: 'test'
+  ...
+# Subtest: workspace rejects incomplete two-point drawings and prototype layer names
+ok 48 - workspace rejects incomplete two-point drawings and prototype layer names
+  ---
+  duration_ms: 1.652191
+  type: 'test'
+  ...
+# Subtest: long round-trip cash, realized PnL and explicit fees reconcile
+ok 49 - long round-trip cash, realized PnL and explicit fees reconcile
+  ---
+  duration_ms: 8.09335
+  type: 'test'
+  ...
+# Subtest: short sale, adverse mark and profitable cover reconcile
+ok 50 - short sale, adverse mark and profitable cover reconcile
+  ---
+  duration_ms: 0.875917
+  type: 'test'
+  ...
+# Subtest: position reversal retains only opening fraction of commission
+ok 51 - position reversal retains only opening fraction of commission
+  ---
+  duration_ms: 0.614904
+  type: 'test'
+  ...
+# Subtest: quote spread and slippage apply to market orders; limits cap fill prices
+ok 52 - quote spread and slippage apply to market orders; limits cap fill prices
+  ---
+  duration_ms: 0.506646
+  type: 'test'
+  ...
+# Subtest: finite liquidity fills oldest orders first without inventing volume
+ok 53 - finite liquidity fills oldest orders first without inventing volume
+  ---
+  duration_ms: 0.468883
+  type: 'test'
+  ...
+# Subtest: OCO partial exit reduces sibling protection by exactly its fill
+ok 54 - OCO partial exit reduces sibling protection by exactly its fill
+  ---
+  duration_ms: 0.44081
+  type: 'test'
+  ...
+# Subtest: trailing stop moves favorably, never away from protection
+ok 55 - trailing stop moves favorably, never away from protection
+  ---
+  duration_ms: 0.888122
+  type: 'test'
+  ...
+# Subtest: stop-limit activation survives a gap without forcing an invalid fill
+ok 56 - stop-limit activation survives a gap without forcing an invalid fill
+  ---
+  duration_ms: 0.354109
+  type: 'test'
+  ...
+# Subtest: IOC cancels any residual after first eligible observation
+ok 57 - IOC cancels any residual after first eligible observation
+  ---
+  duration_ms: 1.01313
+  type: 'test'
+  ...
+# Subtest: expired orders do not fill at expiration
+ok 58 - expired orders do not fill at expiration
+  ---
+  duration_ms: 0.927474
+  type: 'test'
+  ...
+# Subtest: reduce-only order cannot reverse a position
+ok 59 - reduce-only order cannot reverse a position
+  ---
+  duration_ms: 0.496535
+  type: 'test'
+  ...
+# Subtest: buying power rejection leaves cash and quantities unchanged
+ok 60 - buying power rejection leaves cash and quantities unchanged
+  ---
+  duration_ms: 0.336507
+  type: 'test'
+  ...
+# Subtest: maintenance liquidation uses current symbol quote without fabricating other symbols
+ok 61 - maintenance liquidation uses current symbol quote without fabricating other symbols
+  ---
+  duration_ms: 3.308568
+  type: 'test'
+  ...
+# Subtest: out-of-order quote cannot roll marks back or trigger a new order
+ok 62 - out-of-order quote cannot roll marks back or trigger a new order
+  ---
+  duration_ms: 1.180896
+  type: 'test'
+  ...
+# Subtest: amendment validates residual quantity and allowed fields
+ok 63 - amendment validates residual quantity and allowed fields
+  ---
+  duration_ms: 0.736855
+  type: 'test'
+  ...
+# Subtest: snapshot restore preserves economics and ignores injected methods
+ok 64 - snapshot restore preserves economics and ignores injected methods
+  ---
+  duration_ms: 1.691416
+  type: 'test'
+  ...
+# Subtest: restore rejects tampered ledger structures and invalid assumptions
+ok 65 - restore rejects tampered ledger structures and invalid assumptions
+  ---
+  duration_ms: 1.173142
+  type: 'test'
+  ...
+# Subtest: strategy fills next bar open, not signal close; end marks open exposure
+ok 66 - strategy fills next bar open, not signal close; end marks open exposure
+  ---
+  duration_ms: 1.70232
+  type: 'test'
+  ...
+# Subtest: ambiguous OHLC brackets use adverse-first, stop before take
+ok 67 - ambiguous OHLC brackets use adverse-first, stop before take
+  ---
+  duration_ms: 0.88325
+  type: 'test'
+  ...
+# Subtest: partial and synthetic derived bars cannot silently enter execution
+ok 68 - partial and synthetic derived bars cannot silently enter execution
+  ---
+  duration_ms: 0.627583
+  type: 'test'
+  ...
+# Subtest: holdout starts flat and ignores a signal outside its boundary
+ok 69 - holdout starts flat and ignores a signal outside its boundary
+  ---
+  duration_ms: 0.341433
+  type: 'test'
+  ...
+# Subtest: parameter sweep calls candidates only on training data, selected pair once on holdout
+ok 70 - parameter sweep calls candidates only on training data, selected pair once on holdout
+  ---
+  duration_ms: 34.990104
+  type: 'test'
+  ...
+# Subtest: L2 waits for snapshot and replaces absolute quantity rather than adding deltas
+ok 71 - L2 waits for snapshot and replaces absolute quantity rather than adding deltas
+  ---
+  duration_ms: 8.060404
+  type: 'test'
+  ...
+# Subtest: invalid L2 batch is atomic and reconnect discards stale book
+ok 72 - invalid L2 batch is atomic and reconnect discards stale book
+  ---
+  duration_ms: 1.204421
+  type: 'test'
+  ...
+# Subtest: book ignores other products and malformed snapshot preserves current state
+ok 73 - book ignores other products and malformed snapshot preserves current state
+  ---
+  duration_ms: 0.368332
+  type: 'test'
+  ...
+# Subtest: Coinbase maker side is inverted for aggressor-side delta
+ok 74 - Coinbase maker side is inverted for aggressor-side delta
+  ---
+  duration_ms: 0.60908
+  type: 'test'
+  ...
+# Subtest: footprint aggregates actual trades, deduplicates IDs and caps retained bars
+ok 75 - footprint aggregates actual trades, deduplicates IDs and caps retained bars
+  ---
+  duration_ms: 1.105237
+  type: 'test'
+  ...
+# Subtest: crossing alerts establish baseline and once disables after actual crossing
+ok 76 - crossing alerts establish baseline and once disables after actual crossing
+  ---
+  duration_ms: 9.085461
+  type: 'test'
+  ...
+# Subtest: all conditions, dynamic series targets and escaped placeholder replacement are computed
+ok 77 - all conditions, dynamic series targets and escaped placeholder replacement are computed
+  ---
+  duration_ms: 0.973569
+  type: 'test'
+  ...
+# Subtest: close, once-per-bar, cooldown and market/replay gating remain independent
+ok 78 - close, once-per-bar, cooldown and market/replay gating remain independent
+  ---
+  duration_ms: 0.762971
+  type: 'test'
+  ...
+# Subtest: expired and nonfinite condition inputs never trigger
+ok 79 - expired and nonfinite condition inputs never trigger
+  ---
+  duration_ms: 1.258242
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: trend
+ok 80 - drawing schema and finite geometry: trend
+  ---
+  duration_ms: 1.790886
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: ray
+ok 81 - drawing schema and finite geometry: ray
+  ---
+  duration_ms: 0.487107
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: extended
+ok 82 - drawing schema and finite geometry: extended
+  ---
+  duration_ms: 2.785361
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: arrow
+ok 83 - drawing schema and finite geometry: arrow
+  ---
+  duration_ms: 0.60611
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: hline
+ok 84 - drawing schema and finite geometry: hline
+  ---
+  duration_ms: 0.481006
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: vline
+ok 85 - drawing schema and finite geometry: vline
+  ---
+  duration_ms: 0.33305
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: horizontalray
+ok 86 - drawing schema and finite geometry: horizontalray
+  ---
+  duration_ms: 0.558788
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: channel
+ok 87 - drawing schema and finite geometry: channel
+  ---
+  duration_ms: 0.46709
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: pitchfork
+ok 88 - drawing schema and finite geometry: pitchfork
+  ---
+  duration_ms: 0.445656
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: regression
+ok 89 - drawing schema and finite geometry: regression
+  ---
+  duration_ms: 0.591388
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: fib
+ok 90 - drawing schema and finite geometry: fib
+  ---
+  duration_ms: 3.864087
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: fibextension
+ok 91 - drawing schema and finite geometry: fibextension
+  ---
+  duration_ms: 0.632276
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: fibfan
+ok 92 - drawing schema and finite geometry: fibfan
+  ---
+  duration_ms: 1.545893
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: fibtime
+ok 93 - drawing schema and finite geometry: fibtime
+  ---
+  duration_ms: 0.328467
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: fibchannel
+ok 94 - drawing schema and finite geometry: fibchannel
+  ---
+  duration_ms: 0.216119
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: gannfan
+ok 95 - drawing schema and finite geometry: gannfan
+  ---
+  duration_ms: 0.206525
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: fibcircles
+ok 96 - drawing schema and finite geometry: fibcircles
+  ---
+  duration_ms: 0.702747
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: rectangle
+ok 97 - drawing schema and finite geometry: rectangle
+  ---
+  duration_ms: 0.166018
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: ellipse
+ok 98 - drawing schema and finite geometry: ellipse
+  ---
+  duration_ms: 0.318303
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: triangle
+ok 99 - drawing schema and finite geometry: triangle
+  ---
+  duration_ms: 0.182104
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: rotatedrect
+ok 100 - drawing schema and finite geometry: rotatedrect
+  ---
+  duration_ms: 0.18848
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: polyline
+ok 101 - drawing schema and finite geometry: polyline
+  ---
+  duration_ms: 0.162945
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: brush
+ok 102 - drawing schema and finite geometry: brush
+  ---
+  duration_ms: 0.198494
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: longposition
+ok 103 - drawing schema and finite geometry: longposition
+  ---
+  duration_ms: 0.349393
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: shortposition
+ok 104 - drawing schema and finite geometry: shortposition
+  ---
+  duration_ms: 0.258293
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: measure
+ok 105 - drawing schema and finite geometry: measure
+  ---
+  duration_ms: 0.153014
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: dateRange
+ok 106 - drawing schema and finite geometry: dateRange
+  ---
+  duration_ms: 0.222647
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: priceRange
+ok 107 - drawing schema and finite geometry: priceRange
+  ---
+  duration_ms: 0.435962
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: text
+ok 108 - drawing schema and finite geometry: text
+  ---
+  duration_ms: 0.285858
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: callout
+ok 109 - drawing schema and finite geometry: callout
+  ---
+  duration_ms: 0.285444
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: note
+ok 110 - drawing schema and finite geometry: note
+  ---
+  duration_ms: 0.298777
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: buy
+ok 111 - drawing schema and finite geometry: buy
+  ---
+  duration_ms: 0.34742
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: sell
+ok 112 - drawing schema and finite geometry: sell
+  ---
+  duration_ms: 0.371392
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: xabcd
+ok 113 - drawing schema and finite geometry: xabcd
+  ---
+  duration_ms: 0.451631
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: elliott
+ok 114 - drawing schema and finite geometry: elliott
+  ---
+  duration_ms: 0.544328
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: abc
+ok 115 - drawing schema and finite geometry: abc
+  ---
+  duration_ms: 0.327294
+  type: 'test'
+  ...
+# Subtest: drawing schema and finite geometry: headshoulders
+ok 116 - drawing schema and finite geometry: headshoulders
+  ---
+  duration_ms: 0.31097
+  type: 'test'
+  ...
+# Subtest: AureonScript example trend is causal and bounded
+ok 117 - AureonScript example trend is causal and bounded
+  ---
+  duration_ms: 74.529587
+  type: 'test'
+  ...
+# Subtest: AureonScript example strategy is causal and bounded
+ok 118 - AureonScript example strategy is causal and bounded
+  ---
+  duration_ms: 17.112469
+  type: 'test'
+  ...
+# Subtest: AureonScript example oscillator is causal and bounded
+ok 119 - AureonScript example oscillator is causal and bounded
+  ---
+  duration_ms: 25.427276
+  type: 'test'
+  ...
+# Subtest: AureonScript example cumulative is causal and bounded
+ok 120 - AureonScript example cumulative is causal and bounded
+  ---
+  duration_ms: 11.337892
+  type: 'test'
+  ...
+# Subtest: Script ta.ema matches independent numerical module
+ok 121 - Script ta.ema matches independent numerical module
+  ---
+  duration_ms: 2.844494
+  type: 'test'
+  ...
+# Subtest: Script ta.sma matches independent numerical module
+ok 122 - Script ta.sma matches independent numerical module
+  ---
+  duration_ms: 8.701218
+  type: 'test'
+  ...
+# Subtest: Script ta.rsi matches independent numerical module
+ok 123 - Script ta.rsi matches independent numerical module
+  ---
+  duration_ms: 1.762471
+  type: 'test'
+  ...
+# Subtest: Script ta.wma matches independent numerical module
+ok 124 - Script ta.wma matches independent numerical module
+  ---
+  duration_ms: 11.281911
+  type: 'test'
+  ...
+# Subtest: Script ta.linreg matches independent numerical module
+ok 125 - Script ta.linreg matches independent numerical module
+  ---
+  duration_ms: 7.077786
+  type: 'test'
+  ...
+# Subtest: Script ta.atr matches independent numerical module
+ok 126 - Script ta.atr matches independent numerical module
+  ---
+  duration_ms: 3.201736
+  type: 'test'
+  ...
+# Subtest: Pratt precedence, ternary, history and scalar functions
+ok 127 - Pratt precedence, ternary, history and scalar functions
+  ---
+  duration_ms: 4.702011
+  type: 'test'
+  ...
+# Subtest: Persistent variable increments with exactly one initialization
+ok 128 - Persistent variable increments with exactly one initialization
+  ---
+  duration_ms: 1.466722
+  type: 'test'
+  ...
+# Subtest: Persistent declaration first reached after bar zero initializes then carries forward
+ok 129 - Persistent declaration first reached after bar zero initializes then carries forward
+  ---
+  duration_ms: 1.71682
+  type: 'test'
+  ...
+# Subtest: Bounded loop calculates history sums
+ok 130 - Bounded loop calculates history sums
+  ---
+  duration_ms: 22.533108
+  type: 'test'
+  ...
+# Subtest: Nested if/else and else-if select the correct branch
+ok 131 - Nested if/else and else-if select the correct branch
+  ---
+  duration_ms: 2.901933
+  type: 'test'
+  ...
+# Subtest: Input metadata, boolean and source selection preserve series semantics
+ok 132 - Input metadata, boolean and source selection preserve series semantics
+  ---
+  duration_ms: 4.645509
+  type: 'test'
+  ...
+# Subtest: HTF request.security only uses explicitly available closed source bars
+ok 133 - HTF request.security only uses explicitly available closed source bars
+  ---
+  duration_ms: 2.579002
+  type: 'test'
+  ...
+# Subtest: Crossings, alert conditions and entry directions produce actual signals
+ok 134 - Crossings, alert conditions and entry directions produce actual signals
+  ---
+  duration_ms: 6.565177
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: plot(close[-1])
+ok 135 - Script safely rejects: plot(close[-1])
+  ---
+  duration_ms: 0.654396
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: plot(window.location)
+ok 136 - Script safely rejects: plot(window.location)
+  ---
+  duration_ms: 0.223649
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: plot(globalThis)
+ok 137 - Script safely rejects: plot(globalThis)
+  ---
+  duration_ms: 0.202665
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: eval("1")
+ok 138 - Script safely rejects: eval("1")
+  ---
+  duration_ms: 0.278131
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: x = constructor
+ok 139 - Script safely rejects: x = constructor
+  ---
+  duration_ms: 0.390385
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: plot(ta.missing(close,10000))
+ok 140 - Script safely rejects: plot(ta.missing(close,10000))
+  ---
+  duration_ms: 0.383292
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: plot(request.security("X", "1", close))
+ok 141 - Script safely rejects: plot(request.security("X", "1", close))
+  ---
+  duration_ms: 0.497225
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: plot(close, offset=1)
+ok 142 - Script safely rejects: plot(close, offset=1)
+  ---
+  duration_ms: 0.533626
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: f(x) => ta.ema(x, 2)\\nplot(f(close))
+ok 143 - Script safely rejects: f(x) => ta.ema(x, 2)\\nplot(f(close))
+  ---
+  duration_ms: 0.451858
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: f(x) => x[1]\\nplot(f(close))
+ok 144 - Script safely rejects: f(x) => x[1]\\nplot(f(close))
+  ---
+  duration_ms: 0.327373
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: for k = 0 to 1\\n    x = ta.ema(close, 3)
+ok 145 - Script safely rejects: for k = 0 to 1\\n    x = ta.ema(close, 3)
+  ---
+  duration_ms: 0.303702
+  type: 'test'
+  ...
+# Subtest: Script safely rejects: for k = 0 to 10000\\n    x = 1
+ok 146 - Script safely rejects: for k = 0 to 10000\\n    x = 1
+  ---
+  duration_ms: 0.208632
+  type: 'test'
+  ...
+# Subtest: Operation limits and source length limits fail explicitly
+ok 147 - Operation limits and source length limits fail explicitly
+  ---
+  duration_ms: 1.075063
+  type: 'test'
+  ...
+# Subtest: Plot colors, fill IDs and bar colors are output, not executable code
+ok 148 - Plot colors, fill IDs and bar colors are output, not executable code
+  ---
+  duration_ms: 5.509937
+  type: 'test'
+  ...
+# Subtest: native HTTP server authentication, isolation, revision conflicts, services and disk persistence
+    # Subtest: anonymous private endpoints require authentication; static modules remain available
+    ok 1 - anonymous private endpoints require authentication; static modules remain available
+      ---
+      duration_ms: 84.097106
+      type: 'test'
+      ...
+    # Subtest: register two accounts with HttpOnly SameSite cookies and hashed credentials
+    ok 2 - register two accounts with HttpOnly SameSite cookies and hashed credentials
+      ---
+      duration_ms: 348.889482
+      type: 'test'
+      ...
+    # Subtest: mutation requires both correct Origin and CSRF
+    ok 3 - mutation requires both correct Origin and CSRF
+      ---
+      duration_ms: 13.229285
+      type: 'test'
+      ...
+    # Subtest: workspace creates revision one and cannot be read or overwritten by another user
+    ok 4 - workspace creates revision one and cannot be read or overwritten by another user
+      ---
+      duration_ms: 94.401248
+      type: 'test'
+      ...
+    # Subtest: stale and missing revisions never overwrite newer state
+    ok 5 - stale and missing revisions never overwrite newer state
+      ---
+      duration_ms: 22.522158
+      type: 'test'
+      ...
+    # Subtest: concurrent writes serialize and exactly one succeeds at the same revision
+    ok 6 - concurrent writes serialize and exactly one succeeds at the same revision
+      ---
+      duration_ms: 15.463923
+      type: 'test'
+      ...
+    # Subtest: Host rebinding, private state and traversal are blocked
+    ok 7 - Host rebinding, private state and traversal are blocked
+      ---
+      duration_ms: 23.64805
+      type: 'test'
+      ...
+    # Subtest: server alert ownership, capabilities, pause/resume and deletion
+    ok 8 - server alert ownership, capabilities, pause/resume and deletion
+      ---
+      duration_ms: 52.328812
+      type: 'test'
+      ...
+    # Subtest: ideas explicitly share chart snapshots, likes and comments but enforce delete ownership
+    ok 9 - ideas explicitly share chart snapshots, likes and comments but enforce delete ownership
+      ---
+      duration_ms: 30.472536
+      type: 'test'
+      ...
+    # Subtest: SSE routes private events only to intended user
+    ok 10 - SSE routes private events only to intended user
+      ---
+      duration_ms: 64.284291
+      type: 'test'
+      ...
+    # Subtest: paper brokerage is restricted to configured owner and fixed paper endpoint
+    ok 11 - paper brokerage is restricted to configured owner and fixed paper endpoint
+      ---
+      duration_ms: 28.669038
+      type: 'test'
+      ...
+    # Subtest: equity data adapter uses configured data host and preserves raw price provenance
+    ok 12 - equity data adapter uses configured data host and preserves raw price provenance
+      ---
+      duration_ms: 7.346193
+      type: 'test'
+      ...
+    # Subtest: password whitespace is preserved, not silently normalized
+    ok 13 - password whitespace is preserved, not silently normalized
+      ---
+      duration_ms: 486.47181
+      type: 'test'
+      ...
+    # Subtest: restart restores sessions, users, workspaces and explicit shared ideas
+    ok 14 - restart restores sessions, users, workspaces and explicit shared ideas
+      ---
+      duration_ms: 15.840953
+      type: 'test'
+      ...
+    # Subtest: logout revokes session; deletion does not cross accounts
+    ok 15 - logout revokes session; deletion does not cross accounts
+      ---
+      duration_ms: 7.605278
+      type: 'test'
+      ...
+    1..15
+ok 149 - native HTTP server authentication, isolation, revision conflicts, services and disk persistence
+  ---
+  duration_ms: 1392.902175
+  type: 'test'
+  ...
+# Subtest: monitor persists actual crossings, suppresses deleted pending alerts, and exposes provider errors
+ok 150 - monitor persists actual crossings, suppresses deleted pending alerts, and exposes provider errors
+  ---
+  duration_ms: 15.057238
+  type: 'test'
+  ...
+# Subtest: atomic store rolls back failed mutations and continues serial transactions
+ok 151 - atomic store rolls back failed mutations and continues serial transactions
+  ---
+  duration_ms: 8.342698
+  type: 'test'
+  ...
+# Subtest: provider adapters reject arbitrary destinations and invalid external orders before fetch
+ok 152 - provider adapters reject arbitrary destinations and invalid external orders before fetch
+  ---
+  duration_ms: 1.761775
+  type: 'test'
+  ...
+# Subtest: equity pagination is exhausted rather than dropping subsequent pages
+ok 153 - equity pagination is exhausted rather than dropping subsequent pages
+  ---
+  duration_ms: 1.755789
+  type: 'test'
+  ...
+# Subtest: extension schema rejects executable/prototype-shaped values and validates nested studies
+ok 154 - extension schema rejects executable/prototype-shaped values and validates nested studies
+  ---
+  duration_ms: 3.856885
+  type: 'test'
+  ...
+# Subtest: v2 study ema: typed alignment, non-infinity, prefix causality
+ok 155 - v2 study ema: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 4.084055
+  type: 'test'
+  ...
+# Subtest: v2 study sma: typed alignment, non-infinity, prefix causality
+ok 156 - v2 study sma: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 1.380824
+  type: 'test'
+  ...
+# Subtest: v2 study wma: typed alignment, non-infinity, prefix causality
+ok 157 - v2 study wma: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 4.290877
+  type: 'test'
+  ...
+# Subtest: v2 study hma: typed alignment, non-infinity, prefix causality
+ok 158 - v2 study hma: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 1.430172
+  type: 'test'
+  ...
+# Subtest: v2 study rma: typed alignment, non-infinity, prefix causality
+ok 159 - v2 study rma: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 1.479966
+  type: 'test'
+  ...
+# Subtest: v2 study vwma: typed alignment, non-infinity, prefix causality
+ok 160 - v2 study vwma: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 6.834867
+  type: 'test'
+  ...
+# Subtest: v2 study dema: typed alignment, non-infinity, prefix causality
+ok 161 - v2 study dema: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 2.996644
+  type: 'test'
+  ...
+# Subtest: v2 study tema: typed alignment, non-infinity, prefix causality
+ok 162 - v2 study tema: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 2.925445
+  type: 'test'
+  ...
+# Subtest: v2 study bb: typed alignment, non-infinity, prefix causality
+ok 163 - v2 study bb: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 5.158277
+  type: 'test'
+  ...
+# Subtest: v2 study rsi: typed alignment, non-infinity, prefix causality
+ok 164 - v2 study rsi: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 2.302539
+  type: 'test'
+  ...
+# Subtest: v2 study macd: typed alignment, non-infinity, prefix causality
+ok 165 - v2 study macd: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 7.166258
+  type: 'test'
+  ...
+# Subtest: v2 study atr: typed alignment, non-infinity, prefix causality
+ok 166 - v2 study atr: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 3.248801
+  type: 'test'
+  ...
+# Subtest: v2 study stoch: typed alignment, non-infinity, prefix causality
+ok 167 - v2 study stoch: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 9.364689
+  type: 'test'
+  ...
+# Subtest: v2 study stochrsi: typed alignment, non-infinity, prefix causality
+ok 168 - v2 study stochrsi: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 9.893497
+  type: 'test'
+  ...
+# Subtest: v2 study obv: typed alignment, non-infinity, prefix causality
+ok 169 - v2 study obv: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.639603
+  type: 'test'
+  ...
+# Subtest: v2 study vwap: typed alignment, non-infinity, prefix causality
+ok 170 - v2 study vwap: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.608679
+  type: 'test'
+  ...
+# Subtest: v2 study avwap: typed alignment, non-infinity, prefix causality
+ok 171 - v2 study avwap: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.548911
+  type: 'test'
+  ...
+# Subtest: v2 study donchian: typed alignment, non-infinity, prefix causality
+ok 172 - v2 study donchian: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 1.474136
+  type: 'test'
+  ...
+# Subtest: v2 study keltner: typed alignment, non-infinity, prefix causality
+ok 173 - v2 study keltner: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 1.77122
+  type: 'test'
+  ...
+# Subtest: v2 study supertrend: typed alignment, non-infinity, prefix causality
+ok 174 - v2 study supertrend: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 1.078524
+  type: 'test'
+  ...
+# Subtest: v2 study sar: typed alignment, non-infinity, prefix causality
+ok 175 - v2 study sar: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.598506
+  type: 'test'
+  ...
+# Subtest: v2 study dmi: typed alignment, non-infinity, prefix causality
+ok 176 - v2 study dmi: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 2.094125
+  type: 'test'
+  ...
+# Subtest: v2 study cci: typed alignment, non-infinity, prefix causality
+ok 177 - v2 study cci: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 2.17472
+  type: 'test'
+  ...
+# Subtest: v2 study mfi: typed alignment, non-infinity, prefix causality
+ok 178 - v2 study mfi: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.838381
+  type: 'test'
+  ...
+# Subtest: v2 study williams: typed alignment, non-infinity, prefix causality
+ok 179 - v2 study williams: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 1.056768
+  type: 'test'
+  ...
+# Subtest: v2 study roc: typed alignment, non-infinity, prefix causality
+ok 180 - v2 study roc: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.552782
+  type: 'test'
+  ...
+# Subtest: v2 study momentum: typed alignment, non-infinity, prefix causality
+ok 181 - v2 study momentum: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.505456
+  type: 'test'
+  ...
+# Subtest: v2 study cmf: typed alignment, non-infinity, prefix causality
+ok 182 - v2 study cmf: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.668925
+  type: 'test'
+  ...
+# Subtest: v2 study adl: typed alignment, non-infinity, prefix causality
+ok 183 - v2 study adl: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 1.44539
+  type: 'test'
+  ...
+# Subtest: v2 study linreg: typed alignment, non-infinity, prefix causality
+ok 184 - v2 study linreg: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.991976
+  type: 'test'
+  ...
+# Subtest: v2 study awesome: typed alignment, non-infinity, prefix causality
+ok 185 - v2 study awesome: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.505045
+  type: 'test'
+  ...
+# Subtest: v2 study ichimoku: typed alignment, non-infinity, prefix causality
+ok 186 - v2 study ichimoku: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 2.473386
+  type: 'test'
+  ...
+# Subtest: v2 study pivots: typed alignment, non-infinity, prefix causality
+ok 187 - v2 study pivots: typed alignment, non-infinity, prefix causality
+  ---
+  duration_ms: 0.752588
+  type: 'test'
+  ...
+# Subtest: WMA matches brute force across warmup and missing values
+ok 188 - WMA matches brute force across warmup and missing values
+  ---
+  duration_ms: 0.514785
+  type: 'test'
+  ...
+# Subtest: Rolling extrema never treat a NaN-containing window as valid
+ok 189 - Rolling extrema never treat a NaN-containing window as valid
+  ---
+  duration_ms: 2.00204
+  type: 'test'
+  ...
+# Subtest: Regression returns last fitted point for exact linear series
+ok 190 - Regression returns last fitted point for exact linear series
+  ---
+  duration_ms: 0.438866
+  type: 'test'
+  ...
+# Subtest: Correlation and parameter validation
+ok 191 - Correlation and parameter validation
+  ---
+  duration_ms: 0.715521
+  type: 'test'
+  ...
+# Subtest: Renko two-box reversal skips overlap; volumes conserved when all bars represented
+ok 192 - Renko two-box reversal skips overlap; volumes conserved when all bars represented
+  ---
+  duration_ms: 0.794502
+  type: 'test'
+  ...
+# Subtest: Range chart uses one-box close-derived reversals and capacity validation
+ok 193 - Range chart uses one-box close-derived reversals and capacity validation
+  ---
+  duration_ms: 0.551726
+  type: 'test'
+  ...
+# Subtest: Line break respects reversal window and rejects invalid line counts
+ok 194 - Line break respects reversal window and rejects invalid line counts
+  ---
+  duration_ms: 0.521299
+  type: 'test'
+  ...
+# Subtest: Kagi and PnF source indices are monotonic and link to genuine source times
+ok 195 - Kagi and PnF source indices are monotonic and link to genuine source times
+  ---
+  duration_ms: 0.913094
+  type: 'test'
+  ...
+# Subtest: Derived source projection and first-class chart style registry
+ok 196 - Derived source projection and first-class chart style registry
+  ---
+  duration_ms: 0.646998
+  type: 'test'
+  ...
+# Subtest: OHLC volume profile conserves volume and labels approximation
+ok 197 - OHLC volume profile conserves volume and labels approximation
+  ---
+  duration_ms: 2.14265
+  type: 'test'
+  ...
+# Subtest: Tick profile uses observed trade sizes and can contain only one price
+ok 198 - Tick profile uses observed trade sizes and can contain only one price
+  ---
+  duration_ms: 0.307805
+  type: 'test'
+  ...
+# Subtest: Higher-timeframe alignment waits until the source bar closes
+ok 199 - Higher-timeframe alignment waits until the source bar closes
+  ---
+  duration_ms: 0.192795
+  type: 'test'
+  ...
+# Subtest: Synthetic spread is marked non-executable and ratio multiplier is respected
+ok 200 - Synthetic spread is marked non-executable and ratio multiplier is respected
+  ---
+  duration_ms: 0.55785
+  type: 'test'
+  ...
+# Subtest: Treemap partitions area without losing weighted members
+ok 201 - Treemap partitions area without losing weighted members
+  ---
+  duration_ms: 0.419535
+  type: 'test'
+  ...
+# Subtest: SessionCalendar follows New York DST and excludes weekends/holidays
+ok 202 - SessionCalendar follows New York DST and excludes weekends/holidays
+  ---
+  duration_ms: 41.21412
+  type: 'test'
+  ...
+# Subtest: Screener computes indicators and applies numeric filters
+ok 203 - Screener computes indicators and applies numeric filters
+  ---
+  duration_ms: 3.159604
+  type: 'test'
+  ...
+# Subtest: advanced module worker transfers Float64 studies matching reference
+ok 204 - advanced module worker transfers Float64 studies matching reference
+  ---
+  duration_ms: 193.922985
+  type: 'test'
+  ...
+# Subtest: module worker scripts match sandboxed synchronous runtime
+ok 205 - module worker scripts match sandboxed synchronous runtime
+  ---
+  duration_ms: 263.317112
+  type: 'test'
+  ...
+# Subtest: module worker strategy economics equal reference while IDs stay unique
+ok 206 - module worker strategy economics equal reference while IDs stay unique
+  ---
+  duration_ms: 239.747532
+  type: 'test'
+  ...
+# Subtest: module worker rejects invalid script without returning fabricated output
+ok 207 - module worker rejects invalid script without returning fabricated output
+  ---
+  duration_ms: 151.778475
+  type: 'test'
+  ...
+# Subtest: standalone contains canonical functioning worker bundles, not stubs
+ok 208 - standalone contains canonical functioning worker bundles, not stubs
+  ---
+  duration_ms: 30.898007
+  type: 'test'
+  ...
+# Subtest: worker computes and transfers real Float64 indicator outputs
+ok 209 - worker computes and transfers real Float64 indicator outputs
+  ---
+  duration_ms: 175.894601
+  type: 'test'
+  ...
+# Subtest: worker backtest equals the synchronous auditable reference
+ok 210 - worker backtest equals the synchronous auditable reference
+  ---
+  duration_ms: 179.11968
+  type: 'test'
+  ...
+# Subtest: worker errors preserve request identity and do not fake a result
+ok 211 - worker errors preserve request identity and do not fake a result
+  ---
+  duration_ms: 127.429352
+  type: 'test'
+  ...
+1..211
+# tests 226
+# suites 0
+# pass 226
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2382.325607

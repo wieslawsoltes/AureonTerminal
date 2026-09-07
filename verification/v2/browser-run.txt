@@ -1,0 +1,61 @@
+Startup and explicit synthetic provenance True 
+Open panel: script True 
+Open panel: lab True 
+Open panel: screener True 
+Open panel: research True 
+Open panel: flow True 
+Open panel: ledger True 
+Open panel: rules True 
+Open panel: library True 
+Open panel: services True 
+Add and parameter-edit independent study instances through UI True 
+Render chart style: candles True 
+Render chart style: hollow True 
+Render chart style: bars True 
+Render chart style: line True 
+Render chart style: area True 
+Render chart style: heikin True 
+Render chart style: step True 
+Render chart style: baseline True 
+Render chart style: columns True 
+Render chart style: hlc True 
+Render chart style: renko True 
+Render chart style: linebreak True 
+Render chart style: kagi True 
+Render chart style: pnf True 
+Render chart style: range True 
+DRAW PRICE {'y': 64, 'h': 121.68} {'x': 51, 'y': 130, 'width': 1208, 'height': 328}
+Three-anchor channel, freehand brush and undo/redo True 
+Object grouping and locking via object manager True 
+Edit, execute and re-parameterize a real script True 
+Script diagnostic rejects network access then recovers True 
+Volume-profile calculation and timezone/session settings True 
+Multi-chart layout 2 True 
+Multi-chart layout 4 True 
+Multi-chart layout 6 True 
+Multi-chart layout 8 True 
+Multi-chart layout 1 True 
+Computed relative comparison preserves raw primary data True 
+Advanced strategy tester generates actual executions/equity True 
+Training-only selection and separate holdout sweep True 
+Replay order ticket, next-bar execution and rewind protection True 
+Screener scan, computed heatmap and numeric filters True 
+Research JSON import, calendar/fundamentals rendering and HTML safety True 
+Workspace + scripts/studies/drawings/data round-trip True 
+Chart PNG contains a nonempty actual rendering True 
+Light/dark theme switch True 
+All original data and paper panels still render True 
+{
+  "environment": {
+    "renderer": "Canvas 2D",
+    "rendererReason": "WebGPU is unavailable",
+    "workerActive": false,
+    "workerFallbackReason": "Worker unavailable or blocked by browser policy",
+    "secureContext": false,
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+    "syntheticDemo": true
+  },
+  "passed": 46,
+  "failed": 0,
+  "pageErrors": []
+}

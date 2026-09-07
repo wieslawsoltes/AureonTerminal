@@ -1,17 +1,17 @@
 {
   "name": "aureon-terminal",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Dependency-free WebGPU chart terminal with public market data and an auditable numerical core",
+  "description": "Native WebGPU trading workspace, bounded scripting, deterministic simulation and private server services",
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.js",
     "build": "node scripts/build-standalone.mjs",
-    "check": "node --check src/app.js && node --check src/chart.js && node --check src/renderer.js && npm test"
+    "check": "node scripts/check.mjs && npm test"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "license": "MIT"
 }

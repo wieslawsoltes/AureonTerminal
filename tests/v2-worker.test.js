@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {Worker} from 'node:worker_threads';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+import {demoCandles} from '../src/core.js';
+import {performJob} from '../src/jobs.js';
+import {SCRIPT_EXAMPLES} from '../src/script.js';
+const bars=demoCandles(350),options={specs:[{id:'a',type:'rsi',params:{length:14}}]};
+async function request(payload){const url=new URL('../src/engine-worker.js',import.meta.url).href,source=`import{parentPort}from'node:worker_threads';globalThis.self={postMessage:(m,t)=>parentPort.postMessage(m,t)};await import(${JSON.stringify(url)});parentPort.on('message',data=>self.onmessage({data}));`,worker=new Worker(new URL('data:text/javascript,'+encodeURIComponent(source)),{type:'module'});try{return await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Worker test timeout')),10000);worker.once('message',m=>{clearTimeout(timer);resolve(m);});worker.once('error',reject);worker.postMessage(payload);});}finally{await worker.terminate();}}
+test('advanced module worker transfers Float64 studies matching reference',async()=>{const result=await request({id:1,type:'studies',bars,options});assert.deepEqual(result.result,performJob('studies',bars,options));assert.ok(result.result[0].plots[0].values instanceof Float64Array);});
+test('module worker scripts match sandboxed synchronous runtime',async()=>{const options={source:SCRIPT_EXAMPLES.trend,interval:3600,symbol:'BTC-USD'};const result=await request({id:2,type:'script',bars,options});assert.deepEqual(result.result,performJob('script',bars,options));});
+test('module worker strategy economics equal reference while IDs stay unique',async()=>{const options={fast:5,slow:20};const a=(await request({id:3,type:'backtest',bars,options})).result,b=performJob('backtest',bars,options);assert.deepEqual(a.equity,b.equity);assert.deepEqual(a.trades,b.trades);assert.equal(a.fees,b.fees);});
+test('module worker rejects invalid script without returning fabricated output',async()=>{const r=await request({id:4,type:'script',bars,options:{source:'plot(fetch("https://evil.invalid"))'}});assert.equal(r.id,4);assert.equal(r.result,undefined);assert.match(r.error,/Unknown|Unsupported|not supported|Forbidden/);});
+test('standalone contains canonical functioning worker bundles, not stubs',async()=>{const html=await readFile(new URL('../dist/AureonTerminal.html',import.meta.url),'utf8');const match=/for\(const\[name,source\]of Object\.entries\((\{.*?\})\)\)workerURLs/s.exec(html);assert.ok(match);const sources=JSON.parse(match[1]);const messages=[],self={postMessage:(data)=>messages.push(data)};vm.runInNewContext(sources['engine-worker'],{self,crypto:globalThis.crypto,console,URL,Float64Array,Float32Array,ArrayBuffer,structuredClone},{timeout:10000});self.onmessage({data:{id:9,type:'studies',bars,options}});assert.equal(messages.length,1);assert.equal(messages[0].error,undefined);assert.equal(JSON.stringify(messages[0].result),JSON.stringify(performJob('studies',bars,options)));});

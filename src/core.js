@@ -1,5 +1,7 @@
+import {validateDrawing} from './drawings.js';
+import {CHART_TYPES} from './chart-types.js';
 /** Pure, DOM-independent domain layer. Time is Unix seconds; prices are quote/base. */
-export const VERSION = 1;
+export const VERSION = 2;
 export const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 export const uid = () => globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export function lowerBound(items, value, key = x => x.t) {
@@ -197,7 +199,7 @@ export class AlertEngine {
   }
 }
 export function validateWorkspace(raw) {
-  if(!raw || raw.version!==VERSION)throw new Error('Unsupported workspace schema.');
+  if(!raw || ![1,VERSION].includes(raw.version))throw new Error('Unsupported workspace schema.');
   if(typeof raw.symbol!=='string'||!/^[A-Z0-9._-]{1,32}$/.test(raw.symbol))throw new Error('Invalid symbol.');
   if(![60,300,900,3600,14400,21600,86400,604800].includes(raw.interval))throw new Error('Invalid interval.');
   const tools=['trend','ray','hline','vline','rectangle','fib','text','measure'];
@@ -206,15 +208,10 @@ export function validateWorkspace(raw) {
   for(const name of Object.keys(drawings))if(['__proto__','constructor','prototype'].includes(name)||!/^[A-Z0-9._-]{1,32}$/.test(name))throw new Error('Invalid drawing layer name.');
   for(const items of Object.values(drawings)){
     if(!Array.isArray(items)||items.length>3000)throw new Error('Invalid drawing layer.');
-    for(const d of items){
-      if(!tools.includes(d.type)||typeof d.id!=='string'||!Array.isArray(d.points)||d.id.length>128||d.points.length!==(['hline','vline','text'].includes(d.type)?1:2))throw new Error('Invalid drawing.');
-      for(const p of d.points)if(!Number.isFinite(p.t)||p.t<0||p.t>8e12||!Number.isFinite(p.p))throw new Error('Invalid drawing coordinates.');
-      if(d.text!=null&&(typeof d.text!=='string'||d.text.length>500))throw new Error('Invalid drawing label.');
-      if(d.color!=null&&!/^#[0-9a-f]{6}$/i.test(d.color))throw new Error('Invalid drawing color.');
-    }
+    for(const d of items)validateDrawing(d);
   }
   const allowed=['ema','sma','bb','vwap','rsi','macd','atr','stoch','obv'];
-  return {version:VERSION,symbol:raw.symbol,interval:raw.interval,style:['candles','hollow','bars','line','area','heikin'].includes(raw.style)?raw.style:'candles',
+  return {version:VERSION,symbol:raw.symbol,interval:raw.interval,style:Object.hasOwn(CHART_TYPES,raw.style)?raw.style:'candles',
     scale:['linear','log','percent'].includes(raw.scale)?raw.scale:'linear',indicators:(raw.indicators||['ema','sma','rsi']).filter(x=>allowed.includes(x)),
     drawings:structuredClone(drawings),watchlist:(raw.watchlist||[]).filter(x=>typeof x==='string'&&/^[A-Z0-9.-]+-USD$/.test(x)).slice(0,50),
     split:Boolean(raw.split),theme:raw.theme==='light'?'light':'dark'};

@@ -1,5 +1,7 @@
 node_modules/
-.DS_Store
+.aureon-data/
+.env
+.env.*
+!.env.example
+*.log
 __pycache__/
-*.pyc
-test-results/

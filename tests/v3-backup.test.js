@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm,mkdir,writeFile,readFile,stat} from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {encryptBackup,decryptBackup,backup,restore} from '../scripts/backup.mjs';
+const passphrase='fixture strong backup passphrase';
+const payload={version:3,state:JSON.stringify({version:1,users:[],workspaces:[]}),vaultKey:Buffer.alloc(32,1).toString('base64')};
+test('Encrypted backup roundtrip authenticates header, ciphertext and password',()=>{const a=encryptBackup(payload,passphrase),b=encryptBackup(payload,passphrase);assert.notDeepEqual(a,b);assert.deepEqual(decryptBackup(a,passphrase),payload);assert.ok(!a.includes(Buffer.from('workspaces')));assert.throws(()=>decryptBackup(a,'different password fixture'));const damaged=Buffer.from(a);damaged[50]^=1;assert.throws(()=>decryptBackup(damaged,passphrase));assert.throws(()=>encryptBackup(payload,'short'));});
+test('Offline restore includes vault key and refuses overwriting an existing directory or backup',async()=>{const dir=await mkdtemp(join(tmpdir(),'aureon-backup-'));try{const src=join(dir,'source'),dst=join(dir,'restored'),file=join(dir,'private.backup');await mkdir(src);await writeFile(join(src,'state.json'),payload.state);await writeFile(join(src,'vault.key'),Buffer.alloc(32,1));await backup(src,file,passphrase);await assert.rejects(()=>backup(src,file,passphrase),{code:'EEXIST'});await restore(file,dst,passphrase);assert.equal(await readFile(join(dst,'state.json'),'utf8'),payload.state);assert.deepEqual(await readFile(join(dst,'vault.key')),Buffer.alloc(32,1));assert.equal((await stat(file)).mode&0o777,0o600);await assert.rejects(()=>restore(file,dst,passphrase),{code:'EEXIST'});}finally{await rm(dir,{recursive:true,force:true});}});

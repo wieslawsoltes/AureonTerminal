@@ -1,11 +1,17 @@
 # Changelog
 
+## 3.0.0 — proposed upgrade
+
+Expand v2 to 26 chart styles, 73 studies and 66 drawing tools; editable live 16-chart workspaces and opt-in drawing replication; actual-trade footprint/TPO/tick/volume/range rendering; confirmation-delayed pattern scanning; bounded collections/records/methods/tuples/libraries and lower-timeframe/realtime-session scripting; profiling and explicit-universe script screening; named-lot/reservation execution with reconciled trade magnification and explicit financial events; options/bonds/curve/FX/macro/action/roll/AMM analytics.
+
+Add fixed-provider research, TOTP MFA and recovery, encrypted secrets, session controls/audit, isolated server-script/drawing monitors, durable opt-in email/SMS/webhook/Push delivery, immutable shared libraries, CAS chart rooms, messaging/blocks/reports/moderation, PWA/accessibility/mobile improvements and encrypted offline backup tooling. Add a separately disabled, narrow manually confirmed live-equity adapter with fixtures only.
+
+The precise boundaries and remaining product/service gaps are in FEATURE_MATRIX.md. This is not complete TradingView/Pine compatibility; no real orders, licensed services or production infrastructure are activated.
+
 ## 2.0.0
 
-Expanded the v1 application with 15 chart display styles; 33 configurable studies; 37 drawing tools; study templates and object management; original sandboxed scripting; signed long/short execution and raw-bar testing; train/holdout selection; observed order flow and profiles; multi-chart layouts; research imports, computed screening and heatmap; rules and replay execution; revisioned private workspaces; persistent server polling; local shared chart ideas; and an optional owner-restricted Alpaca paper-only adapter.
-
-Preserved v1 features and tests. Added source-level and protocol regression coverage, generated standalone worker-bundle checks and browser interaction verification. Source prices remain separate from synthetic visual transforms; live/cached/imported/demo states remain explicit. Documentation enumerates approximations and absent features rather than claiming complete TradingView or Pine parity.
+Merged as PR #1: extended chart/study/drawing catalogues, original scripting and advanced tester, optional private server and paper-only provider adapter. V2 source remains in Git history.
 
 ## 1.0.0
 
-Initial Aureon Terminal plain HTML/JavaScript workspace, native WebGPU geometry with Canvas fallback, public market transport, original indicators/drawings, replay, simple backtesting and spot paper ledger, alerts and portable files.
+Initial plain-JavaScript WebGPU charting terminal and Canvas fallback, Coinbase transport, local paper trading, indicators, drawings, replay and portable source build.

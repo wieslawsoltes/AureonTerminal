@@ -1,6 +1,7 @@
 /** Persistent polling monitors. First crossing observation establishes a baseline.
  * Provider failures never fabricate samples. Concurrent edits revoke pending emits.
  */
+import {enqueueDelivery} from './delivery-pro.mjs';
 import {RulesEngine} from '../src/alerts-v2.js';
 export class AlertMonitor {
   constructor(store,providers,publish,{interval=15000}={}){this.store=store;this.providers=providers;this.publish=publish;this.interval=Math.max(5000,interval);this.previous=new Map();this.errors=new Map();}
@@ -21,6 +22,7 @@ export class AlertMonitor {
               const valid=new Map();
               for(const r of engine.rules){const stored=state.alerts.find(x=>x.id===r.id);if(stored?.active&&stored.updated===r.updated){valid.set(r.id,stored.userId);stored.active=r.active;stored.lastFired=r.lastFired;stored.lastBar=r.lastBar;stored.status=r.status;}}
               const accepted=events.filter(e=>valid.has(e.ruleId)).map(e=>({...e,userId:valid.get(e.ruleId)}));
+              for(const event of accepted)enqueueDelivery(state,event.userId,event);
               state.alertLog.push(...accepted);state.alertLog=state.alertLog.slice(-10000);return accepted;
             });
             for(const e of committed)this.publish(e.userId,{type:'alert',event:e});

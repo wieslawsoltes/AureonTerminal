@@ -1,0 +1,5 @@
+{$AUREON_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy aureon:4173
+    header Strict-Transport-Security "max-age=31536000"
+}

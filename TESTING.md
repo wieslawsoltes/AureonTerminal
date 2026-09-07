@@ -1,78 +1,45 @@
-# Aureon Terminal 2.0 — verification report
+# Aureon Terminal v3 verification
 
-## Recorded result
+The v2 evidence is retained separately in `docs/V2_TESTING.md` and `verification/v2`. The v3 work was validated with Node.js 22 and Chromium on Linux. Counts below are executed checks, not promises of parity or production certification.
 
-The release was checked with Node.js 22.16.0 and Chromium 144 on Linux.
+## Local results
 
-| Verification | Result |
-|---|---|
-| JavaScript/module syntax check | Passed |
-| Automated Node tests | **226 passed, 0 failed, 0 skipped, 0 TODO** |
-| Browser interaction groups | **46 passed, 0 failed** |
-| Captured browser page JavaScript errors | **0** |
-| Standalone source build | Passed; client embeds both workers without runtime package/CDN dependencies |
-| Actual WebGPU device/shader execution | **Not exercised in this environment** |
-| GPU performance / production throughput | **Not measured** |
-| Actual authenticated external paper provider | **Not exercised** |
-| End-to-end production Coinbase transport | **Not established by this test run** |
+- **400 Node tests passed**, no failures/skips/TODO, including nested HTTP integration cases.
+- **46 existing browser regression groups passed**, no captured page JavaScript errors.
+- **29 new v3 browser groups passed**, no captured page JavaScript errors, using the standalone document and independent Canvas renderer.
+- Source syntax checks and standalone generation passed; the generated worker handlers are tested, not substituted stubs.
 
-The Node runner reports 211 top-level tests and 15 nested subtests, for 226 total. Some browser groups make several assertions; 46 is a group count, not a claim about exhaustive UI coverage. Reports are under `verification/v2/`.
+The local browser’s managed policy blocks loopback navigation. Its v3 run therefore used `--document`: browser authentication, PWA installation/offline navigation, secure-origin WebGPU and browser worker execution were **not** established there. Module/worker execution and actual HTTP server behavior were independently exercised in Node. The new secure-origin browser harness and CI workflow additionally run from a normal loopback origin; consult the PR Actions results/artifacts for their actual status, not these local counts.
 
-## Reproduce numerical and server checks
+## Added test coverage
+
+`v3-analytics.test.js`: option values/put-call parity/Greeks finite differences/IV bounds, American trees, OCC dates, payoff multipliers, bond yield and derivatives, curves, as-of actions/rolls, FX freshness, AMM conservation, actual-print bars/profiles, confirmed pivot delay and pattern prefix causality.
+
+`v3-script.test.js`: call-site histories, arrays/maps/matrices, alias-preserving snapshots, typed records/methods, tuples, explicit libraries, lower-timeframe closure, realtime rollback/varip, profiling, unsafe-property rejection, allocation/string/cycle budgets. The two old tests that rejected newly supported function history were replaced with positive semantic tests, not simply removed to mask failures.
+
+`v3-execution.test.js`: named lots, reservations, targeted exits, partial execution, accounting events, queue-ahead consumption, magnifier reconciliation and no duplicate liquidity. Existing study/geometry tests enumerate all **73 studies and 66 drawings**.
+
+`v3-security.test.js`: published RFC6238 SHA1/SHA256/SHA512 vectors; counter replay prevention; authenticated vault persistence; audit mutation/reorder detection; SSRF address rules; independent RFC8291 payload decryption and VAPID signature verification; outbox deduplication/backoff/deleted-channel handling; webhook owner binding/signatures.
+
+`v3-providers.test.js`: fixed-host read-only fixtures, pagination, FRED vintage, SEC contact identity, credential redaction, concurrency, actual isolated server-script workers. **All real-money tests use fixtures**: default-disabled gates, pre-existing MFA owner, stale quotes, cash/positions, immutable previews, concurrent single-submission, uncertainty/reconciliation and hard attempted-notional caps. No real credentials or order submissions.
+
+`v3-services.test.js`: actual local Node HTTP requests for authentication/CSRF/MFA recovery, restart, role bootstrap, notification recipient isolation, immutable/private libraries, room revision races, opt-in messaging/blocks, moderation, isolated script evaluation, durable script/drawing crossings, deletion races and disabled live routing.
+
+`v3-backup.test.js`: authenticated encryption, incorrect passphrase/tampering rejection, state+vault restore and exclusive output creation.
+
+## Commands
 
 ```sh
 npm run build
 npm run check
-```
-
-No npm dependencies are required. The tests use native Node test/assert/http/worker APIs. Server tests bind ephemeral loopback ports and use temporary private directories that are deleted after the test. Provider tests inject deterministic protocol fixtures; no credentials, external order placement or live quote availability are required.
-
-| Test file | Coverage |
-|---|---|
-| `core.test.js` | v1 OHLCV, merging/aggregation, CSV/schema, study reference behavior, accounting and undo compatibility. |
-| `data.test.js` | v1 provider normalization/protocol behavior and source handling. |
-| `worker.test.js` | v1 worker calculations and error identity. |
-| `v2-studies.test.js` | Configurable numerical studies, reference calculations, warm-up and all 33 registry types' prefix causality. |
-| `v2-script.test.js` | Lexer/parser, assignments/branches/history/functions/loops, input types, indicators/strategy output, higher-timeframe no-lookahead alignment, budgets and unsupported-access diagnostics. |
-| `v2-execution.test.js` | Long/short economics, fees/reversals, partial fills, partial OCO reduction, brackets, stops/limits/trailing, IOC/expiry, amendments, maintenance, stale quotes, restore validation, next-open execution and holdout isolation. |
-| `v2-protocol.test.js` | Derived bars, 37 drawing constructions, profiles/order flow, L2 snapshots/updates, aggressor classification, research/workspace validation, sessions and alert frequency/crossing semantics. |
-| `v2-server.test.js` | Password/session behavior, same-origin/CSRF/Host protection, private paths, ownership, revision races, ideas, SSE isolation, persistence, paper-owner bootstrap, fixed provider hosts, monitor state and provider failure handling. |
-| `v2-worker.test.js` | Actual advanced module worker handler in a Node worker-thread transport shim; study/script/backtest/error protocol and generated standalone worker-bundle equivalence. |
-
-Tests are deterministic examples/invariants, not proof against every numerical, financial, security or browser failure. Generated UUID values differ between runs; economic assertions compare deterministic quantities rather than requiring identical random IDs.
-
-## Browser verification
-
-A development machine with Python Playwright and Chromium can run:
-
-```sh
-npm run build
 python scripts/verify-browser-v2.py
+python scripts/verify-browser-v3.py
+# In browser environments that deliberately block loopback navigation only:
+python scripts/verify-browser-v3.py --document
 ```
 
-Set `CHROMIUM` to a different browser executable when required. Python/Playwright are test-only dependencies and are not needed to run the application. The harness uses an explicit deterministic demo flag and never represents fixture prices as live quotes.
+The browser scripts require Python Playwright and Chromium, independently of application runtime. Set `CHROMIUM` to the installed executable. Reports distinguish renderer and worker availability. Screenshots/JSON are written under verification; CI artifacts are the authoritative result of that run.
 
-The groups exercise startup/provenance, nine new panels, actual study-parameter controls, all 15 chart render styles, a three-anchor channel and freehand stroke, undo/redo, grouping/locking, editor execution and input changes, script rejection/recovery, profiles, IANA settings, multi-chart layouts, comparisons, computed strategy results, train/holdout selection, replay order timing and rewind invalidation, screener/heatmap filtering, escaped research import, portable workspace provenance, PNG export, themes and retained v1 panels.
+## Not established
 
-Some chart styles/layout operations use the exposed application/component API to select a state before drawing; other groups use real pointer, form and button interactions. This is functional browser regression, not a claim that every menu path, accessibility gesture, mobile layout and browser engine was exercised.
-
-### Restricted browser environment
-
-The available browser denied ordinary localhost navigation and blob worker execution. The harness therefore loaded the standalone document into an opaque `about:blank` document using `set_content`. The environment report records:
-
-- `renderer: "Canvas 2D"`, with WebGPU unavailable;
-- `secureContext: false`;
-- `workerActive: false`, with an explicit policy-blocked fallback reason;
-- deterministic synthetic demonstration data.
-
-An independent minimal blob worker was also blocked. Consequently, browser tests exercised the bounded synchronous advanced-job fallback, not a functioning browser worker. The worker handler and generated bundle were separately tested through Node transport/VM execution. That does not certify browser worker startup, hardware WGSL compilation, resource lifetime under a real GPU, device-loss handling, authenticated Services UI or remote provider behavior.
-
-Local storage/IndexedDB are also restricted in an opaque document. Portable serialization and backend persistence were tested, but cross-restart browser storage on a secure deployed origin still warrants a real-environment test.
-
-## Visual evidence
-
-`workspace-browser.png` shows the chart, computed custom script, configurable studies and a labeled synthetic source. `strategy-browser.png` shows the computed advanced tester. The images are browser captures of the executable application, not generated interface illustrations. Prices/performance visible in those captures are deterministic demonstration results, not live prices or investment results.
-
-## Additional deployment validation still needed
-
-On the intended machine/origin, verify native WebGPU initialization and shader compilation, browser workers, HTTPS storage, live Coinbase connectivity/recovery, actual broker entitlements, explicit paper order/cancel behavior with the owner's test account, concurrent long-running monitor load, browser memory, mobile/accessibility behavior, reverse-proxy origin settings, backups and security controls. No benchmark or production certification is inferred from the passing offline suite.
+Actual WebGPU hardware shader/device execution or GPU throughput; production Coinbase end-to-end reliability; authenticated external paper/live brokerage, research entitlements, live email/SMS/Push delivery; live Docker/TLS deployment; exchange certification; accuracy of heuristic pattern classification; WCAG/native-app parity; distributed storage/delivery or guaranteed recovery. Tests prove specific invariants and fixtures, not the completeness of TradingView or Pine semantics.

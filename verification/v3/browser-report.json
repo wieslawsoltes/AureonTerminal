@@ -1,0 +1,272 @@
+{
+  "tests": [
+    {
+      "name": "Startup provenance and computed script output; report worker availability",
+      "passed": true,
+      "detail": {
+        "secure": false,
+        "worker": false,
+        "renderer": "Canvas 2D",
+        "kind": "demo"
+      },
+      "milliseconds": 13.86
+    },
+    {
+      "name": "Open Pro workflow analytics",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 4.33
+    },
+    {
+      "name": "Open Pro workflow patterns",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 18.07
+    },
+    {
+      "name": "Open Pro workflow trades",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 17.72
+    },
+    {
+      "name": "Open Pro workflow scripts",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 10.11
+    },
+    {
+      "name": "Open Pro workflow execution",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 3.74
+    },
+    {
+      "name": "Open Pro workflow research",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 4.87
+    },
+    {
+      "name": "Open Pro workflow server",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 4.76
+    },
+    {
+      "name": "Open Pro workflow collaborate",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 8.0
+    },
+    {
+      "name": "Open Pro workflow accessibility",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 17.29
+    },
+    {
+      "name": "Options model calculates through actual form controls",
+      "passed": true,
+      "detail": {
+        "price": 6132.145666819029,
+        "delta": 0.5687690643617231,
+        "gamma": 2.8134007282144423e-05,
+        "vega": 21959.08623877275,
+        "rho": 19405.956809879866,
+        "theta": -6654.128968285979,
+        "d1": 0.17324116139070414,
+        "d2": -0.003535533905932753,
+        "model": "European Black\u2013Scholes\u2013Merton",
+        "greekUnits": "theta/year; vega/1.0 volatility; rho/1.0 rate"
+      },
+      "milliseconds": 75.29
+    },
+    {
+      "name": "Causal pattern scan produces computed detections; report worker availability",
+      "passed": true,
+      "detail": {
+        "patterns": 1453,
+        "worker": false
+      },
+      "milliseconds": 108.37
+    },
+    {
+      "name": "Observed trade JSON import validates symbol and retains explicit source",
+      "passed": true,
+      "detail": {
+        "source": "Browser test supplied trades, not live",
+        "observations": 160,
+        "bars": 40,
+        "buy": 1904.9731598468888,
+        "sell": 1904.9731598468888,
+        "unknown": 0
+      },
+      "milliseconds": 51.16
+    },
+    {
+      "name": "Render v3 chart style volumecandles",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "primitives": 1308,
+        "observations": 160
+      },
+      "milliseconds": 6.65
+    },
+    {
+      "name": "Render v3 chart style highlow",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "primitives": 1452,
+        "observations": 160
+      },
+      "milliseconds": 11.35
+    },
+    {
+      "name": "Render v3 chart style hlcarea",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "primitives": 1596,
+        "observations": 160
+      },
+      "milliseconds": 5.79
+    },
+    {
+      "name": "Render v3 chart style linemarkers",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "primitives": 2892,
+        "observations": 160
+      },
+      "milliseconds": 11.98
+    },
+    {
+      "name": "Render v3 chart style stepline",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "primitives": 3036,
+        "observations": 160
+      },
+      "milliseconds": 8.16
+    },
+    {
+      "name": "Render v3 chart style circles",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "primitives": 2748,
+        "observations": 160
+      },
+      "milliseconds": 12.24
+    },
+    {
+      "name": "Render v3 chart style footprint",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "primitives": 1496,
+        "observations": 160
+      },
+      "milliseconds": 11.64
+    },
+    {
+      "name": "Render v3 chart style tpo",
+      "passed": true,
+      "detail": {
+        "bars": 1000,
+        "primitives": 1176,
+        "observations": 160
+      },
+      "milliseconds": 5.78
+    },
+    {
+      "name": "Render v3 chart style tickcount",
+      "passed": true,
+      "detail": {
+        "bars": 2,
+        "primitives": 437,
+        "observations": 160
+      },
+      "milliseconds": 12.81
+    },
+    {
+      "name": "Render v3 chart style tradevolume",
+      "passed": true,
+      "detail": {
+        "bars": 39,
+        "primitives": 600,
+        "observations": 160
+      },
+      "milliseconds": 5.53
+    },
+    {
+      "name": "Render v3 chart style traderange",
+      "passed": true,
+      "detail": {
+        "bars": 71,
+        "primitives": 782,
+        "observations": 160
+      },
+      "milliseconds": 7.06
+    },
+    {
+      "name": "Replay hides future observed footprint data",
+      "passed": true,
+      "detail": {
+        "visibleBuckets": 10
+      },
+      "milliseconds": 2.47
+    },
+    {
+      "name": "16 chart panes load; secondary drawing editor supports undo/redo",
+      "passed": true,
+      "detail": {
+        "tiles": 16,
+        "editable": true
+      },
+      "milliseconds": 167.14
+    },
+    {
+      "name": "Drawing replication is opt-in and matches symbols only",
+      "passed": true,
+      "detail": true,
+      "milliseconds": 2.38
+    },
+    {
+      "name": "Profiler and entry-ID portfolio strategy execute with live adapter unavailable",
+      "passed": true,
+      "detail": {
+        "profile": 5,
+        "trades": 1
+      },
+      "milliseconds": 34.68
+    },
+    {
+      "name": "Mobile viewport has no document-width overflow and controls remain available",
+      "passed": true,
+      "detail": {
+        "viewport": 390,
+        "document": 390,
+        "centerRight": 390,
+        "app": 390
+      },
+      "milliseconds": 231.63
+    }
+  ],
+  "passed": 29,
+  "failed": 0,
+  "pageErrors": [],
+  "origin": "document injection (loopback browser navigation blocked by environment policy)",
+  "notRun": [
+    "browser authentication",
+    "PWA install/offline",
+    "secure-origin WebGPU"
+  ],
+  "providerConnectivity": "Not tested; demo / protocol fixtures",
+  "renderer": "Canvas 2D"
+}

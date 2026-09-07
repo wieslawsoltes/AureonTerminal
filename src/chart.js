@@ -1,3 +1,5 @@
+import {TRADE_CHART_TYPES,tradeDisplay,prepareTradeProfiles,renderProBar,renderTradeOverlay} from './chart-pro.js';
+import {computeIndicators} from './indicators.js';
 import {NON_TIME_TYPES,deriveChart,projectValues} from './chart-types.js';
 import {DRAWING_TOOLS,LEGACY_DRAWINGS,drawingGeometry} from './drawings.js';
 import {Renderer,Geometry,rgba} from './renderer.js';
@@ -22,24 +24,25 @@ export class Chart {
     const on=(target,event,fn,extra={})=>target.addEventListener(event,fn,{signal:this.events.signal,...extra});
     on(this.canvas,'pointerdown',e=>this.down(e));on(this.canvas,'pointermove',e=>this.move(e));on(this.canvas,'pointerup',e=>this.up(e));on(this.canvas,'pointercancel',e=>this.cancel(e));
     on(this.canvas,'pointerleave',()=>{if(!this.pointer){this.cross=null;this.invalidate(false);}});
-    on(this.canvas,'wheel',e=>this.wheel(e),{passive:false});on(this.canvas,'dblclick',e=>{if(this.pending?.type==='polyline'){e.preventDefault();this.pending.points.pop();if(this.pending.points.length>=2)this.commitDrawing(this.pending);this.pending=null;this.setTool('cursor');}else if(!this.pending)this.fit();});
+    on(this.canvas,'wheel',e=>this.wheel(e),{passive:false});on(this.canvas,'dblclick',e=>{if(this.pending&&DRAWING_TOOLS[this.pending.type]?.points===0&&this.pending.type!=='brush'){e.preventDefault();this.pending.points.pop();if(this.pending.points.length>=2)this.commitDrawing(this.pending);this.pending=null;this.setTool('cursor');}else if(!this.pending)this.fit();});
     on(this.canvas,'contextmenu',e=>{e.preventDefault();const p=this.point(e);options.onContext?.({x:e.clientX,y:e.clientY,price:this.toPrice(p.y),time:this.toTime(this.toIndex(p.x))});});
     on(this.canvas,'keydown',e=>{if(e.key==='Home'){e.preventDefault();this.fit();}if(e.key==='Escape'){this.pending=null;this.selected=null;this.setTool('cursor');this.invalidate();}});
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(host);this.resize();
   }
-  get length(){return NON_TIME_TYPES.has(this.style)?this.bars.length:Math.min(this.bars.length,this.endLimit??Infinity);}
-  setStyle(style,options=this.typeOptions||{}){this.style=style;this.typeOptions=options;this.setData(this.rawBars||this.bars,this.rawIndicators||this.indicators,{reset:true});}
-  projectStudies(){this.extraStudies=(this.rawStudies||[]).map(s=>({...s,backgrounds:s.backgrounds?.map(b=>({...b,values:NON_TIME_TYPES.has(this.style)?this.bars.map(x=>b.values[x.sourceIndex]):b.values})),plots:s.plots.map(p=>({...p,values:NON_TIME_TYPES.has(this.style)?projectValues(p.values,this.bars):p.values,colors:p.colors&&NON_TIME_TYPES.has(this.style)?this.bars.map(b=>p.colors[b.sourceIndex]):p.colors}))}));}
+  get length(){return (NON_TIME_TYPES.has(this.style)||TRADE_CHART_TYPES.has(this.style))?this.bars.length:Math.min(this.bars.length,this.endLimit??Infinity);}
+  setStyle(style,options=this.typeOptions||{}){this.style=style;this.typeOptions=options;this.setData(this.rawBars||this.bars,this.rawIndicators||this.indicators,{reset:true});if(this.tradeData?.length)this.setTradeData(this.tradeData,options);if(['footprint','tpo'].includes(style)){this.count=Math.min(this.count,24);this.right=this.length+2;} }
+  projectStudies(){if(TRADE_CHART_TYPES.has(this.style)){this.extraStudies=[];return;}this.extraStudies=(this.rawStudies||[]).map(s=>({...s,backgrounds:s.backgrounds?.map(b=>({...b,values:NON_TIME_TYPES.has(this.style)?this.bars.map(x=>b.values[x.sourceIndex]):b.values})),plots:s.plots.map(p=>({...p,values:NON_TIME_TYPES.has(this.style)?projectValues(p.values,this.bars):p.values,colors:p.colors&&NON_TIME_TYPES.has(this.style)?this.bars.map(b=>p.colors[b.sourceIndex]):p.colors}))}));}
   setStudies(studies){this.rawStudies=studies;this.projectStudies();this.invalidate();}
-  setData(bars,indicators=this.rawIndicators||this.indicators,{reset=false}={}){this.rawBars=bars;this.rawIndicators=indicators;if(NON_TIME_TYPES.has(this.style)){bars=deriveChart(this.endLimit!=null?bars.slice(0,this.endLimit):bars,this.style,this.typeOptions);indicators=projectValues(indicators,bars);}const oldLength=this.dataLength??this.length,oldFirst=this.firstTime??this.bars[0]?.t,following=this.right>=oldLength-3;this.bars=bars;this.indicators=indicators;this.ha=null;
+  setData(bars,indicators=this.rawIndicators||this.indicators,{reset=false}={}){this.rawBars=bars;this.rawIndicators=indicators;if(TRADE_CHART_TYPES.has(this.style)){const cutoff=this.endLimit!=null?bars[this.endLimit-1]?.t+this.interval:Infinity;bars=tradeDisplay((this.tradeData||[]).filter(t=>(t.t??t.time)<cutoff),this.style,this.typeOptions);indicators=computeIndicators(bars);}else if(NON_TIME_TYPES.has(this.style)){bars=deriveChart(this.endLimit!=null?bars.slice(0,this.endLimit):bars,this.style,this.typeOptions);indicators=projectValues(indicators,bars);}const oldLength=this.dataLength??this.length,oldFirst=this.firstTime??this.bars[0]?.t,following=this.right>=oldLength-3;this.bars=bars;this.indicators=indicators;this.ha=null;
     if(reset){this.right=this.length+6;this.count=Math.min(140,Math.max(30,this.length+12));this.manualRange=null;}
     else if(oldFirst!=null&&bars[0]?.t<oldFirst){this.right+=lowerBound(bars,oldFirst);}
     else if(following)this.right+=this.length-oldLength;
-    this.projectStudies();this.dataLength=this.length;this.firstTime=this.bars[0]?.t;this.empty.hidden=Boolean(this.length);this.watermark.textContent=this.symbol.replace('-',' / ');this.invalidate();
+    this.projectStudies();this.dataLength=this.length;this.firstTime=this.bars[0]?.t;this.empty.hidden=Boolean(this.length);if(!this.length&&TRADE_CHART_TYPES.has(this.style))this.empty.textContent='Actual-trade data required. Import trades in Pro tools or connect Order Flow.';this.watermark.textContent=this.symbol.replace('-',' / ');this.invalidate();
   }
-  setIndicators(data){this.rawIndicators=data;this.indicators=NON_TIME_TYPES.has(this.style)?projectValues(data,this.bars):data;this.invalidate();}
+  setIndicators(data){this.rawIndicators=data;if(TRADE_CHART_TYPES.has(this.style))return;this.indicators=NON_TIME_TYPES.has(this.style)?projectValues(data,this.bars):data;this.invalidate();}
   setTool(tool){this.tool=tool;this.pending=null;this.canvas.style.cursor=tool==='cursor'?'crosshair':'crosshair';this.options.onTool?.(tool);this.invalidate();}
-  setReplay(end){this.endLimit=end;if(NON_TIME_TYPES.has(this.style)){this.setData(this.rawBars||[],this.rawIndicators||{}, {reset:true});this.right=this.length+4;}else if(end!=null)this.right=end+4;this.manualRange=null;this.invalidate();}
+  setTradeData(trades,options=this.typeOptions||{}){this.tradeData=trades;const cutoff=this.endLimit==null?Infinity:(this.rawBars?.[this.endLimit-1]?.t??-Infinity)+this.interval,visible=trades.filter(t=>(t.t??t.time)<cutoff);this.tradeProfiles=['footprint','tpo'].includes(this.style)&&visible.length?prepareTradeProfiles(visible,this.interval,options):null;if(TRADE_CHART_TYPES.has(this.style))this.setData(this.rawBars||[],this.rawIndicators||{});this.invalidate();}
+  setReplay(end){this.endLimit=end;if(['footprint','tpo'].includes(this.style))this.setTradeData(this.tradeData||[]);if(NON_TIME_TYPES.has(this.style)||TRADE_CHART_TYPES.has(this.style)){this.setData(this.rawBars||[],this.rawIndicators||{}, {reset:true});this.right=this.length+4;}else if(end!=null)this.right=end+4;this.manualRange=null;this.invalidate();}
   resize(){const r=this.host.getBoundingClientRect();this.width=Math.max(1,r.width);this.height=Math.max(1,r.height);this.dpr=Math.min(devicePixelRatio||1,3);this.renderer.resize(this.width,this.height,this.dpr);this.canvas.width=Math.max(1,Math.round(this.width*this.dpr));this.canvas.height=Math.max(1,Math.round(this.height*this.dpr));this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);this.invalidate();}
   fit(){this.count=Math.min(150,Math.max(30,this.length+10));this.right=this.length+6;this.manualRange=null;this.invalidate();this.emitView();}
   fitAll(){this.count=Math.max(30,this.length+10);this.right=this.length+5;this.manualRange=null;this.invalidate();this.emitView();}
@@ -146,7 +149,8 @@ export class Chart {
       for(let j=i+1;j<Math.min(this.last,i+stride);j++){h=Math.max(h,source[j].h);l=Math.min(l,source[j].l);close=source[j].c;v+=this.bars[j].v;end=j;}
       const x=this.toX((i+end)/2),width=clamp(this.step*(end-i+1)*.72,1,42),col=close>=o?up:down;if(x<-width||x>this.plotWidth+width)continue;
       const yo=this.toY(o),yc=this.toY(close),yh=this.toY(h),yl=this.toY(l);
-      if(['line','area','step','baseline'].includes(this.style)){
+      if(renderProBar(this,{b,x,width,yo,yc,yh,yl,col,volume:v,maxVolume,previous:prev})){prev={x,y:yc,h:yh,l:yl};}
+      else if(['line','area','step','baseline'].includes(this.style)){
         if(this.style==='baseline'){const baseline=this.typeOptions?.baseline??this.percentBase,by=clamp(this.toY(baseline),this.price.y,this.price.y+this.price.h);g.rect(clamp(x-this.step*stride/2,0,this.plotWidth),by,Math.min(this.step*stride+1,this.plotWidth-x+this.step*stride/2),clamp(yc,this.price.y,this.price.y+this.price.h)-by,rgba(close>=baseline?c.up:c.down,.14));}
         if(this.style==='area'){const y=clamp(yc,this.price.y,this.price.y+this.price.h);g.rect(clamp(x-this.step*stride/2,0,this.plotWidth),y,Math.min(this.step*stride+1,this.plotWidth-x+this.step*stride/2),this.price.y+this.price.h-y,rgba(c.accent,.10));}
         if(prev){const co=this.style==='baseline'?(close>=(this.typeOptions?.baseline??this.percentBase)?up:down):rgba(c.accent);if(this.style==='step'){clippedLine(g,prev.x,prev.y,x,prev.y,co,2,this.price);clippedLine(g,x,prev.y,x,yc,co,2,this.price);}else clippedLine(g,prev.x,prev.y,x,yc,co,2,this.price);}prev={x,y:yc};
@@ -165,7 +169,7 @@ export class Chart {
     if(this.enabled.includes('bb')&&this.indicators.bb){const b=this.indicators.bb;this.plot(b.upper,rgba('#9777df',.7),this.price);this.plot(b.lower,rgba('#9777df',.7),this.price);this.plot(b.mid,rgba('#9777df',.45),this.price);}
     for(const key of ['ema','sma','vwap'])if(this.enabled.includes(key)&&this.indicators[key])this.plot(this.indicators[key],rgba(INDICATOR_INFO[key].color),this.price,1.5);
     for(const [key,box]of Object.entries(this.panes))if(!key.startsWith('extra:'))this.drawPane(key,box);
-    this.drawExtraStudies();this.drawProfile();
+    this.drawExtraStudies();this.drawProfile();renderTradeOverlay(this);
     const last=this.bars[this.length-1],lastY=this.toY(last.c);if(lastY>=this.price.y&&lastY<=this.price.y+this.price.h){g.dash(0,lastY,this.plotWidth,lastY,rgba(last.c>=last.o?c.up:c.down,.55),1,4);const bg=last.c>=last.o?c.up:c.down;g.rect(this.plotWidth+1,lastY-10,81,20,rgba(bg));this.labels.push({x:this.plotWidth+8,y:lastY+1,text:formatPrice(last.c),color:'#ffffff'});}
     if(this.drawingsVisible){for(const d of this.drawings)if(!d.hidden&&(!d.intervals||d.intervals.includes(this.interval)))this.drawDrawing(d);if(this.pending)this.drawDrawing(this.pending);}
     for(const m of this.markers){if(m.t>this.bars[this.length-1].t)continue;const x=this.toX(this.timeIndex(m.t)),y=this.toY(m.p);if(x>=0&&x<=this.plotWidth&&y>=this.price.y&&y<=this.price.y+this.price.h)this.labels.push({x,y:y+(m.side==='buy'?16:-14),text:m.side==='buy'?'▲':'▼',color:m.side==='buy'?c.up:c.down,align:'center'});}

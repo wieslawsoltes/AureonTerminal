@@ -44,9 +44,9 @@ The document retains a bounded history: 10,000 operations / 8 MB per symbol. A r
 
 `RoomDrawingSync` wraps the ordinary primary-chart history only after explicit join. Local edits become queued operations; normal toolbar/keyboard undo uses authored toggles. Matching tiles participate only with drawing synchronization enabled. Other instruments retain their local history. Polls that add no operations do not disturb selection; remote application is deferred during pointer manipulation.
 
-Pending operations persist in tab session storage under account/room/symbol identity. A retry reuses immutable IDs. The client merges a successful response before acknowledging its pending batch. A failed leave keeps the connection/queue; reloading and explicitly rejoining recovers saved pending operations. Storage failure is surfaced and warns against closing the page. Undo groups themselves are not durable across reconnect.
+Pending operations persist as individual IndexedDB records under account/room/symbol identity. Legacy tab-session queues migrate only after the IndexedDB transaction commits. A retry reuses immutable IDs. The client merges a successful response before acknowledging its pending batch. A failed leave keeps the connection/queue; reloading or opening a new tab and explicitly rejoining recovers saved pending operations. Storage failure is surfaced and warns against closing the page. Undo groups themselves are not durable across reconnect.
 
-The server endpoint is `/v2/pro/rooms/:id/drawings?symbol=...`; the API namespace remains compatible with existing workspaces. Each POST accepts at most 256 operations, requires current room membership and binds actor prefixes to the authenticated account. Membership is rechecked inside the transaction. Workspace payload snapshots continue to use revision CAS independently; drawing commits never overwrite those snapshots. Polling reads committed operations and works across same-host processes; SSE is still process-local.
+The server endpoint is `/v2/pro/rooms/:id/drawings?symbol=...`; the API namespace remains compatible with existing workspaces. Each POST accepts at most 256 operations, requires current room membership and binds actor prefixes to the authenticated account. Membership is rechecked inside the transaction. Workspace payload snapshots continue to use revision CAS independently; drawing commits never overwrite those snapshots. Polling reads committed operations and works across same-host processes; SSE reads the shared event journal described below.
 
 ## Storage contracts
 
@@ -75,3 +75,23 @@ Scrypt credentials, hashed opaque sessions, same-origin/CSRF gates, TOTP/recover
 Normal tickets/scripts/alerts never invoke the separate production adapter. That fixed-host, disabled-by-default route has its own pre-existing MFA owner, HTTPS, immutable preview, typed confirmation, fresh quote/risk checks and uncertain-submission reconciliation. No v4 change activates or broadens it. Private hosting, external credentials, licensed feeds and operational approval are outside static deployment.
 
 See `FEATURE_MATRIX.md`, `SCRIPTING.md`, `SECURITY.md`, `DATA_PROVIDERS.md` and `TESTING.md` for exact supported surfaces and verification boundaries.
+
+## 4.1 durable event delivery
+
+`server/events.mjs` appends an event row in the same domain transaction as accepted workspace/room/message/alert changes. An epoch UUID and increasing safe-integer sequence form the opaque SSE ID. JSON remains single-process; SQLite readers observe the committed journal from other same-host processes. A notification therefore does not depend on which process owns the EventSource socket or monitor lease.
+
+Each EventHub polls every 250 ms and emits at most 64 events per client per pump, rechecking session expiry/revocation, room membership and bilateral message blocks. It honors writable backpressure and closes clients whose queued socket data exceeds 256 KiB. The journal holds at most 4,096 bounded 16 KiB events and a 24-hour delivery window. Cursor gaps and epoch changes emit `resync` with the current cursor; restoring an older pre-journal backup clears the browser cursor rather than sending an invalid literal ID. This is a bounded invalidation log inside the coarse state payload, not a partitioned message broker. Retention exhaustion requires authoritative refresh; network acknowledgement is not exactly-once application consumption.
+
+## 4.1 durable browser outbox
+
+`DrawingOutbox` uses a unique `(scope, actor, clock)` key with a scope index. Read/write promises resolve on transaction completion, not individual request success; writes request strict durability. Immutable operation content is checked before mutation. An acknowledged batch deletes only records with matching IDs AND canonical payloads, never another tab's later operations. Failed write batches remain in the in-memory unsaved map and are included in the next write retry; later successful edits cannot falsely mark earlier failures as saved. Server replies are validated for exact acknowledgement before persistent deletion. No token/password is stored; drawing content is not encrypted and remains subject to browser eviction.
+
+## 4.1 realtime execution and order flow
+
+`createJobRuntime` owns a `LiveScriptRuntime` per worker; pure batch jobs remain independent. An explicit start validates ascending history and at most one open bar. Every update has a consecutive sequence and a monotonic as-of time. A rollover must supply the actual completed bar; changed open/extrema/volume or a gap fails closed. The editor sends accepted primary-series observations to a dedicated worker without silently coalescing them. Sixty-four pending observations, history capacity or worker loss stop the session and require explicit restart. Strategies are rejected in this path.
+
+The underlying session re-evaluates bounded history for rollback correctness; it is intentionally not advertised as an incremental compiler. Replay/context epochs, series identity/version and replay cutoff checks prevent stale batch outputs being applied to another history. Authoritative REST history changes stop realtime; byte-equivalent OHLCV reconciliation does not invent another observation.
+
+`analyzeFootprint` computes imbalances solely from classified observed volume. Diagonal ratios compare a buy row against the observed sell row below and vice versa; a missing row is not a zero denominator. Stacks require contiguous ticks. Unknown-side volume contributes to volume/POC/value area but not directional imbalance. POC ties select the lower row; value area expands from POC by the larger adjacent observed volume, downward on ties.
+
+Public interface references: [SSE](https://html.spec.whatwg.org/multipage/server-sent-events.html) and [IndexedDB transactions](https://www.w3.org/TR/IndexedDB/). These are interface references, not dependencies or external runtime code.

@@ -127,7 +127,7 @@ async def main():
                         await context.route('**/v2/pro/rooms/**/drawings**',lambda route:route.abort())
                         await page.evaluate("()=>{const a=aureon.app,b=structuredClone(a.chart.drawings),n=structuredClone(b);n.find(d=>d.id==='shared-browser-line').color='#0000ff';a.drawingChanged(b,n);}")
                         await wait(page,'()=>!aureon.workbench.collaboration.inFlight')
-                        assert await page.evaluate('()=>aureon.workbench.collaboration.pending.length>0 && !!sessionStorage.getItem(aureon.workbench.collaboration.storageKey)')
+                        assert await page.evaluate('async()=>{const c=aureon.workbench.collaboration;await c.persistence;return c.pending.length>0&&(await c.outbox.read(c.scope)).length>0;}')
                         page.once('dialog',lambda d:d.accept())
                         await page.reload(wait_until='load')
                         await wait(page,'()=>!!globalThis.aureon?.workbench')
@@ -158,4 +158,6 @@ async def main():
             process.terminate()
             try:process.wait(timeout=10)
             except subprocess.TimeoutExpired:process.kill();process.wait()
-if __name__=='__main__':asyncio.run(main())
+if __name__=='__main__':
+    asyncio.run(main())
+    if not DOCUMENT:subprocess.run([sys.executable,str(ROOT/'scripts/verify-browser-v41.py')],check=True)

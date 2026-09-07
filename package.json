@@ -1,6 +1,6 @@
 {
   "name": "aureon-terminal",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "private": true,
   "type": "module",
   "description": "WebGPU market workbench, bounded scripting, causal analytics, execution simulation and opt-in private services",

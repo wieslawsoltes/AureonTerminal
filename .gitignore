@@ -8,3 +8,6 @@ __pycache__/
 
 *.backup
 _site/
+
+# Fresh browser evidence belongs in CI artifacts, not source commits.
+verification/v4/

@@ -18,7 +18,7 @@ struct Out { @builtin(position) position:vec4f, @location(0) color:vec4f };
 }
 @fragment fn fs(input:Out)->@location(0) vec4f {return input.color;}`;
 const cache=new Map();
-export function rgba(hex,alpha=1){const k=hex+alpha;if(cache.has(k))return cache.get(k);let h=hex.replace('#','');if(h.length===3)h=h.split('').map(x=>x+x).join('');const n=parseInt(h,16),c=[((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255,alpha];cache.set(k,c);return c;}
+export function rgba(hex,alpha=1){const k=hex+alpha;if(cache.has(k))return cache.get(k);let h=String(hex||'#578bfa').replace('#','');if(h.length===3)h=h.split('').map(x=>x+x).join('');if(h.length===8){alpha*=parseInt(h.slice(6),16)/255;h=h.slice(0,6);}const n=parseInt(h,16)||0,c=[((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255,alpha];if(cache.size>4096)cache.clear();cache.set(k,c);return c;}
 export class Geometry {
   constructor(){this.data=new Float32Array(12*4096);this.count=0;}
   clear(){this.count=0;}

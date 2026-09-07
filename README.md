@@ -1,136 +1,115 @@
-# Aureon Terminal
+# Aureon Terminal 2.0
 
-**A clearer view of the market.** An original, dependency-free HTML/CSS/JavaScript trading workspace with a native WebGPU geometry renderer, public market-data adapters, an auditable numerical core, editable chart drawings, historical analysis, and local paper execution.
+A dependency-free, original trading/charting workspace using plain JavaScript, HTML and CSS. Native WebGPU geometry with Canvas fallback; configurable analysis; an original bounded scripting interpreter; raw-price strategy testing; local simulation; and optional private Node services.
 
-This is runnable software, not a screenshot or a TradingView embed. No TradingView code, widgets, branding, proprietary charting libraries, or Pine runtime are included. The workspace follows familiar chart-terminal conventions while using its own visual identity.
+**This release is not complete TradingView parity and does not implement Pine Script v6.** It is runnable software, not a static screen reproduction. See [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for implemented features, approximation boundaries, provider requirements and functionality still absent.
 
 ## Run
 
-Use Node.js 20 or newer. No dependency installation is necessary.
+Requires Node.js 22 or newer for the included server. No npm packages need installation.
 
 ```sh
-cd aureon-terminal
+npm start
+# Open http://localhost:4173
+```
+
+Use `http://localhost:4173/?demo` for an explicit deterministic synthetic demonstration. Normal startup attempts the public Coinbase connection. An unavailable provider produces a visibly labeled cache or synthetic preview, never counterfeit live quotes.
+
+```sh
+npm run build  # Regenerate dist/AureonTerminal.html from canonical source modules
+npm test      # Engine, protocol, worker and private-server tests
+npm run check # JavaScript syntax validation followed by all tests
+```
+
+`dist/AureonTerminal.html` is a self-contained client with both worker bundles. It has no UI framework, external charting library, CDN runtime or build dependency. Serve the application from localhost or HTTPS for suitable origin/security behavior. File/opaque origins may disable workers, storage or WebGPU. The bounded synchronous computation fallback is limited to 10,000 bars for advanced jobs. The private account, persistent monitor, shared-ideas and external paper-adapter features require the included Node server; static hosting cannot supply those services.
+
+## What changed from v1
+
+| Subsystem | v2 implementation |
+|---|---|
+| Charts | 15 display styles: candlesticks, hollow candles, OHLC, line, area, Heikin-Ashi, step, baseline, columns, HLC, close-derived Renko, line break, Kagi, point-and-figure and range. |
+| Studies | 33 configurable study types, up to 32 independent instances, independent colors/periods/pane placement, templates and the nine original quick studies. |
+| Drawings | 37 tools including channels, pitchfork, regression, Fibonacci constructions, Gann fan, brush, polyline, risk/reward boxes and manually placed pattern annotations; grouping, layering, locking, hiding and numeric anchor editing. |
+| Workspace | 1/2/4/6/8 chart layouts, linked time navigation/crosshairs, independent secondary symbols/intervals, IANA display zones and session shading. Secondary views are read-only historical views, not independent full editors or live subscriptions. |
+| Scripting | AureonScript parser/interpreter, real computed plots, input controls, alerts and strategy signals. No JavaScript evaluation or network access. Explicit grammar and limits in SCRIPTING.md. |
+| Strategy testing | Long/short, next-open signals, fees/slippage, leverage, protective stops/takes, equity/drawdown/trade statistics, CSV trades and a training-only parameter search with a separate holdout. |
+| Execution | Signed-position local ledger, market/limit/stop/stop-limit/trailing orders, reduce-only, GTC/IOC, amendments in the engine, expiry, partial liquidity fills in the engine, OCO/brackets, accounting and maintenance checks. |
+| Order flow | Public Coinbase L2 batch snapshot/update adapter, observed aggressor-side footprint, delta/CVD and observed tick profile. Live connection is explicit; disconnected books are invalidated. |
+| Analysis | Visible-range OHLC volume-profile approximation; OHLC TPO approximation; comparisons/spreads; computed multi-symbol screener and weighted heatmap; imported research and observed seasonality. |
+| Private server | Hashed/salted accounts, opaque sessions, CSRF, owner-isolated revisioned workspaces, SSE, persistent polled alerts, shared chart ideas/comments/likes and a fixed-host Alpaca **paper-only** adapter. |
+
+## First workflows
+
+**Studies and drawings.** Open **Studies**, add an instance, and change its parameters immediately. Save a template to reuse the set. **Drawing tools** opens the complete palette: two-anchor tools support dragging or click–click, multi-anchor tools use successive clicks, brush uses dragging, and polyline finishes with a double-click. **Object manager** edits anchors, groups, locks, visibility and order. Existing undo/redo remains available.
+
+**Scripts.** Open **Script editor**, choose an example, edit its source, and press **Run** or Ctrl/Cmd+Enter. Inputs become real controls in the side panel. The interpreter recomputes series sequentially and reports source-location errors. Script definitions persist locally, but imported/reloaded source is not automatically executed merely because it exists in a project.
+
+**Testing.** Open **Advanced tester**, select the EMA-cross strategy or the current script, set execution assumptions, and run. Changing chart display to Renko or Heikin-Ashi does not change the raw execution dataset. The train/holdout action selects one of 12 EMA pairs on the first 70% of loaded history and evaluates that selected pair on the remaining 30%, starting flat.
+
+**Replay execution.** Start replay before placing a local simulated order on synthetic or imported history. Orders submitted after the currently shown close first encounter the next replayed bar. Rewinding invalidates the running replay account and requires reset; the software does not pretend to roll an already executed ledger backward. Live local simulation requires a recent bid/ask. The original simple spot-paper panel remains a separate ledger for backward compatibility; **Execution SIM** is the new long/short ledger.
+
+**Data and screening.** CSV supplies raw OHLCV. Portable workspace JSON includes the selected raw history, studies, scripts and research but excludes execution accounts and credentials. Research JSON supplies a universe, events, fundamentals and news, with explicit source metadata. The screener computes its values from the supplied/loaded bars; it is not an exchange-wide fundamentals database.
+
+## Private services
+
+Start the server, open **Server**, and register a local account with a password of at least 12 characters. Accounts and services belong to your deployment, not TradingView. Workspaces are private to their owner. Publishing an idea deliberately shares its chart settings, annotations, scripts and imported research with other users of that server; review the payload before publishing.
+
+The server stores its single-process state under `.aureon-data/` with restrictive file permissions. Set `AUREON_DATA_DIR` to a persistent private directory when needed. Never put real configuration or the private store into a public repository. `AUREON_REGISTRATION=0` disables new registrations. `AUREON_MONITOR=0` disables background alert polling. Default polling is 15 seconds and requires the process and provider to stay online. There is no hosted service or deployment included.
+
+### Optional external paper brokerage and equity history
+
+1. Start locally without broker credentials and create the intended owner account.
+2. Stop the server. Configure **paper** credentials and that existing username in the process environment.
+3. Restart and sign in as that user. Newly registered users cannot claim broker privileges during that server process lifetime.
+
+```sh
+export AUREON_BROKER_USER='your_existing_username'
+export APCA_API_KEY_ID='your_paper_key'
+export APCA_API_SECRET_KEY='your_paper_secret'
+export ALPACA_DATA_FEED='iex'
 npm start
 ```
 
-Open **http://localhost:4173**. The included server serves the ES modules and offers a read-only, fixed-host Coinbase REST proxy when direct REST access fails on localhost. It does not relay WebSockets or send orders.
+Do not put keys in scripts, project JSON or browser code. Only the fixed `paper-api.alpaca.markets` order/account destination exists in this implementation; the history adapter uses the separate fixed data host. The client requires an explicit confirmation before submitting an external paper order. Data access remains subject to the account's actual entitlements. No external authenticated paper account was exercised during verification; provider behavior was tested with injected protocol fixtures.
 
-```sh
-npm test       # 51 numerical, protocol-fixture, and worker-handler tests
-npm run check  # syntax checks plus the tests
-npm run build  # regenerate dist/AureonTerminal.html
+For remote hosting, configure a TLS reverse proxy, a correct `AUREON_ORIGIN`, a private persistent volume and appropriate registration/access controls. The default listener is loopback. Read SECURITY.md before exposing services. The server is not a distributed database, audited brokerage gateway or regulated trading platform.
+
+## Source map
+
 ```
-
-`dist/AureonTerminal.html` contains the entire application, styles, SVG icons, and worker implementation in one file. It can be opened directly for a quick demonstration; HTTP on localhost is recommended for consistent module/worker/storage behavior. On a static host, serve the application over HTTPS. WebGPU is attempted when available; otherwise an independent Canvas 2D renderer is used. The status bar identifies the actual backend. File-origin and browser security policies may prevent WebGPU, persistence, workers, or cross-origin data access.
-
-Add `?demo=1` for an explicitly synthetic offline demonstration. Add `?canvas=1` to intentionally exercise the Canvas renderer. For example: `http://localhost:4173/?demo=1&canvas=1`.
-
-## Implemented workspace
-
-| Area | Working implementation |
-| --- | --- |
-| Charts | Candlesticks, hollow candles, OHLC bars, line, area, Heikin-Ashi; volume; linear, logarithmic, and percent scales; high-DPI rendering; crosshair; OHLCV inspector; price-axis manipulation. |
-| Navigation | Pointer-anchored wheel zoom, dragging to pan, horizontal scrolling, auto-fit, visible-range culling, historical pagination, linked time navigation in a two-chart comparison layout. |
-| Indicators | EMA 20, SMA 50, Bollinger Bands 20/2, RSI 14, MACD 12/26/9, UTC-session VWAP, ATR 14, Stochastic 14/3, OBV. Independent oscillator panes. |
-| Drawings | Trend lines, rays, horizontal/vertical lines, Fibonacci retracements, rectangles, text, price/time measurements; time/price anchors; move/resize handles; OHLC snapping; object list; colors; locking/hiding; deletion; drawing undo/redo. |
-| Market workspace | Symbol search, editable watchlist, USD product discovery, live ticker quotes, recent trades, and periodically refreshed order-book snapshots. |
-| Historical analysis | Bar replay with step/play/seek/speed; EMA-cross strategy tester; computed trade list, equity curve, return, win rate, and maximum drawdown. |
-| Paper execution | Browser-local $100,000 cash ledger; spot buy/sell; market, limit, stop-market, cancellation, fees, average cost, realized/unrealized results; fresh-quote validation. No real orders. |
-| Alerts | One-shot crossing alerts above, below, or in either direction; in-app history; optional browser notification permission. Monitoring requires the page to remain running. |
-| Persistence | Local workspace/ledger/alerts, IndexedDB history cache, workspace JSON with source OHLCV, CSV import/export, and actual chart PNG export. |
-| UI | Original amber-accented dark and light themes, top chart toolbar, left drawing strip, right watchlist/details, resizable bottom analysis panel, keyboard shortcuts, modal editors. |
-
-The nine chart-study presets are fixed in the UI; their underlying functions accept periods in source. Fast/slow EMA periods, initial capital, allocation, fees, and slippage are editable in the strategy tester.
-
-## Data provenance and connectivity
-
-The default adapter uses Coinbase Exchange's public REST and WebSocket endpoints. It requires no API key for the implemented public market-data operations. Product availability, rate limits, regional access, CORS policies, and network availability remain provider/browser constraints.
-
-- REST: `https://api.exchange.coinbase.com/products/{id}/candles`, `/products`, `/products/{id}/book?level=2`.
-- WebSocket: `wss://ws-feed.exchange.coinbase.com`, `ticker` and `heartbeat` channels.
-- Native intervals: 1 minute, 5 minutes, 15 minutes, 1 hour, 6 hours, and 1 day. Four-hour bars aggregate hourly bars; weekly bars aggregate daily bars using Monday 00:00 UTC boundaries.
-- Candle tuples are decoded as `[time, low, high, open, close, volume]`, validated, deduplicated, and sorted. Missing no-trade intervals are not filled with invented trades.
-- History loads in pages. The current candle is provisional; incoming ticker executions update it with bounded trade-ID deduplication. Finalized bars are repaired against REST on subsequent reconciliation. The REST-to-stream handoff is not claimed to be a lossless exchange-event recorder.
-- The book is a **REST snapshot refreshed about every 12 seconds**, not a sequenced streaming level-2 order book. The UI says so.
-- Subscription selection is bounded to 50 symbols. Keep the union of watchlist, comparison, active alert, position, and open-order symbols within that limit.
-
-The chart always identifies one of **Coinbase market data**, **cached history**, **imported OHLCV**, or **synthetic demo**. Startup uses a visibly labeled synthetic preview while connecting. A failed connection never turns generated prices into supposedly live prices. Live ticker connectivity and the provenance of chart candles are tracked separately.
-
-The synthetic demonstration is deterministic, historical-looking test data, not historical market data. Paper order submission is disabled for synthetic/imported/cached chart modes and during replay. Existing simulated orders are monitored from live quotes only while the app is open and not replaying.
-
-## Numerical and rendering design
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for data contracts, renderer layout, mathematical conventions, and extension points.
-
-Financial calculations use JavaScript numbers and Float64Arrays. The renderer converts coordinates to local viewport pixels before uploading Float32Array instances; it does not cast full Unix timestamps or financial prices directly into float32 clip-space calculations. Rectangles and line segments share an instanced WGSL pipeline. Geometry, text, and crosshair invalidation are separated. Text uses a transparent Canvas 2D overlay rather than a GPU glyph atlas.
-
-Visible bars are culled, and zoomed-out candles are aggregated without discarding their high/low extremes. Indicator decimation preserves min/max excursions. GPU buffers grow geometrically and are reused. An invalidation-driven requestAnimationFrame pipeline avoids continuously repainting an idle chart. The status timing is CPU chart-frame work, **not measured GPU execution time**.
-
-Indicator and backtest requests normally run through a dedicated module worker; computation falls back to the same functions on the main thread when workers cannot start. Results carry request identities so obsolete responses cannot install on a newer symbol selection.
-
-## Historical test semantics
-
-The included strategy is deliberately specific: a long-only fast/slow EMA crossover, not a general strategy language.
-
-The signal uses previously closed bars. An entry or exit executes at the **next bar's open**, with explicit slippage and proportional fees. The default fee is 10 basis points and default slippage is 5 basis points; the form exposes these assumptions. Position size includes the entry fee. No same-bar close signal is filled at that same close. An open final position is marked to the last close, not silently liquidated. Reported completed-trade statistics exclude an open position.
-
-Replay restricts the chart and historical test input to the revealed prefix, and clears future strategy markers/results when entered. Indicator values are causal, including warm-up periods. Replay is a visualization/analysis mode, not an exchange simulator.
-
-## Paper accounting semantics
-
-Paper orders never leave the browser. Positions are long-only spot inventory; there is no margin, leverage, short selling, funding, borrowing, tax accounting, or broker reconciliation.
-
-Market fills use the live ask for buys and bid for sells and require a quote received less than 15 seconds ago; the source timestamp is also checked when available. A crossed or nonpositive bid/ask is rejected. Limit and stop-market orders evaluate against fresh quotes, not historical candle ranges. Open orders do **not** reserve cash or inventory: insufficiency at trigger time rejects the order. There is no exchange queue-position, market impact, partial-fill, or available-depth model. The default fee is 10 basis points per fill. Cash and cost basis include fees. Marks can fall back to cost basis when a quote is unavailable; they are not executable prices.
-
-Alerts and open orders stop being evaluated when the page is closed or suspended. They are not server-hosted services. Backtests and paper execution are two distinct models with separately documented assumptions.
-
-## CSV and workspace import
-
-A CSV may use `time`, `timestamp`, or `date` for the timestamp column and either short or full OHLCV column names. Example:
-
-```csv
-time,open,high,low,close,volume
-2025-01-01T00:00:00Z,100,104,99,102,12.5
-2025-01-01T01:00:00Z,102,106,101,105,18.2
-2025-01-01T02:00:00Z,105,105,100,101,9.7
+src/
+  core.js, data.js                  Raw OHLCV, cache, transport, v1 compatibility
+  renderer.js, chart.js             GPU/Canvas geometry, interaction, visual projection
+  chart-types.js, drawings.js       Derived bars and semantic drawing constructions
+  studies.js, indicators.js         Float64 numerical kernels and registries
+  script.js                        Lexer, parser and bounded bar interpreter
+  execution.js                     Signed accounting, order state machine, raw-bar testing
+  orderflow.js, analytics.js        L2/footprints, profiles, screener, sessions
+  alerts-v2.js                     Shared condition/crossing engine
+  jobs.js, engine-worker.js        Advanced worker protocol and bounded fallback
+  workspace-v2.js                  Versioned portable extension/research validation
+  server-client.js, ui.js          Same-origin service client and escaped UI helpers
+  app.js, workbench.js             Base application and v2 workspace orchestration
+server/
+  app.mjs, store.mjs               Auth, ownership, revisions, SSE, atomic storage
+  providers.mjs, monitor.mjs       Fixed-host data/paper adapters and persistent monitors
+scripts/                           Standalone builder, checks, browser verifier
+examples/                          AureonScript and explicitly labeled research fixture
 ```
-
-Timestamps accept Unix seconds, Unix milliseconds, timezone-qualified ISO timestamps, or a date-only value interpreted at UTC midnight. Ambiguous local datetime strings are rejected. Values must be finite; volume cannot be negative; high/low must contain open/close. Imports are bounded to 30 MB of CSV text and 250,000 candles. Repeated timestamps use the last supplied row. Data is sorted. The interval is inferred for CSV; workspace JSON carries it explicitly. Supported workspace intervals are the intervals listed above. Imported bars can be aggregated to a coarser integer multiple but cannot be fabricated into a lower timeframe. Imported CSV uses `CUSTOM-USD`; workspace JSON retains an explicit symbol.
-
-Workspace JSON stores validated drawing geometry, chart state, and optional source bars. Paper-account state and alerts are kept separately in browser storage; they are not part of the portable workspace export. Browser storage is best-effort, not a substitute for an exported backup.
-
-## Controls
-
-| Action | Control |
-| --- | --- |
-| Symbol search | Ctrl/Cmd+K or `/` |
-| Save workspace | Ctrl/Cmd+S |
-| Undo / redo drawings | Ctrl/Cmd+Z; Ctrl/Cmd+Shift+Z; Ctrl+Y |
-| Select / trend / horizontal / Fibonacci | V / T / H / F |
-| Indicators / alert / replay | I / A / R |
-| Toggle OHLC snapping | M |
-| Delete drawing / cancel placement | Delete / Escape |
-| Pan / zoom | Drag chart / wheel around pointer |
-| Horizontal scroll / price scaling | Shift+wheel / drag right axis |
-| Fit / context menu | Double-click / right-click |
-
-Two-point drawings accept drag-to-create or click–click placement. Select a drawing and drag its handles to resize, or drag the segment to translate. The Objects sidebar exposes object attributes.
 
 ## Verification and boundaries
 
-The delivered source passed **51 Node tests** and **14 browser interaction groups**, with **zero captured browser JavaScript errors**. See [TESTING.md](TESTING.md) and `verification/` for exact results.
+The release test report records **226 passing automated tests** and **46 passing browser groups**, with zero captured page JavaScript errors. Browser verification used the **Canvas fallback and bounded synchronous fallback** because the environment denied WebGPU and even a minimal blob worker. The actual worker handler was independently exercised in Node worker threads, and the generated standalone worker bundle was executed and compared with the numerical reference.
 
-The build environment blocked normal browser navigation and external network access. Browser testing used the standalone distribution in an isolated document, exercising the **Canvas 2D fallback**. Browser workers were unavailable there; the actual worker handler was tested separately with Node worker threads. **Real WebGPU adapter/shader execution, GPU performance, production Coinbase connectivity, CORS behavior, and full browser-storage persistence were not verified end to end in that environment.** The code implements these paths, but their presence is not a hardware or production-network test result.
+No GPU performance claim or end-to-end live-provider certification is made. See TESTING.md for exact scope. Financial outputs are computations under declared assumptions, not trading recommendations or executable exchange quotes. No real-money order route is implemented.
 
-This is a substantial first implementation, not full TradingView parity. It does not include Pine Script, proprietary indicators, exchange-licensed equities/futures/options feeds, order routing, news/social feeds, financial statements, server-side alerts, multiuser/cloud synchronization, corporate-action adjustment, custom exchange-session calendars, or more than two chart panes. Imported datasets are available for analysis but do not become tradable live products. The UI is desktop-oriented; a 1,000-pixel-wide viewport was tested, not a complete mobile trading workflow. No performance benchmark or profitability claim is made.
+## Documentation
 
-## Official protocol references
+- [FEATURE_MATRIX.md](FEATURE_MATRIX.md): exact delivered scope and remaining gaps.
+- [ARCHITECTURE.md](ARCHITECTURE.md): module boundaries, semantics and execution model.
+- [SCRIPTING.md](SCRIPTING.md): original language, examples and explicit incompatibilities.
+- [DATA_PROVIDERS.md](DATA_PROVIDERS.md): data contracts, provenance and provider references.
+- [SECURITY.md](SECURITY.md): credentials, ownership, deployment and limitations.
+- [TESTING.md](TESTING.md): reproducible verification and environment restrictions.
 
-- Coinbase Exchange public API introduction: https://docs.cdp.coinbase.com/exchange/introduction/welcome
-- Product candles: https://docs.cdp.coinbase.com/exchange/reference/exchangerestapi_getproductcandles
-- Exchange WebSocket channels: https://docs.cdp.coinbase.com/exchange/websocket-feed/channels
-- WebGPU API and secure-context requirements: https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API
-
-## License
-
-MIT. See [LICENSE](LICENSE). Third-party service names belong to their respective owners. No affiliation with TradingView or Coinbase is implied. You are responsible for complying with a data provider's terms when using or redistributing its market data.
+Original application source is MIT licensed. Market data, service access and third-party names remain subject to their respective rights and terms. No TradingView source, widgets, proprietary charting library, Pine runtime or branding assets are included.

@@ -1,0 +1,2 @@
+import {performJob} from './jobs.js';
+self.onmessage=({data})=>{const{id,type,bars,options}=data;try{const result=performJob(type,bars,options),buffers=new Set();const visit=x=>{if(ArrayBuffer.isView(x))buffers.add(x.buffer);else if(x&&typeof x==='object')for(const v of Object.values(x))visit(v);};visit(result);self.postMessage({id,result},[...buffers]);}catch(error){self.postMessage({id,error:error.message});}};

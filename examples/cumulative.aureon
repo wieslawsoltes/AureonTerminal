@@ -1,0 +1,4 @@
+indicator("Cumulative close change", overlay=false)
+var float total = 0
+total := nz(total[1]) + nz(ta.change(close))
+plot(total, "Cumulative delta", color.teal)

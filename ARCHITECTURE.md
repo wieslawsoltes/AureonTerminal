@@ -1,100 +1,116 @@
-# Aureon Terminal — engine architecture
+# Aureon Terminal 2.0 — architecture and semantics
 
-## Module boundaries
+## 1. Runtime boundaries
 
-```text
-index.html + styles.css
-          │
-       app.js ──────────── workspace, provenance, UI state, persistence
-       │  │  │
-       │  │  └─ data.js ─ REST / WebSocket / IndexedDB adapters
-       │  └──── compute.js ─ indicator-worker.js ─ indicators.js
-       └─────── chart.js ─ renderer.js ─ native WebGPU or Canvas fallback
-                         
-core.js ─ validated bars, resampling, drawing history, paper ledger, alerts
+The browser client is plain ES modules, HTML and CSS. No framework, hosted chart widget, third-party chart runtime or CDN dependency is present. `scripts/build-standalone.mjs` links local named imports into explicit module factories, embeds CSS/SVG, and constructs two worker bundles. The builder does not fetch dependencies or evaluate source dynamically.
+
+`server.mjs` is an optional native Node 22 server. It serves the client and implements private accounts, workspace storage, monitoring, chart ideas and a paper-only provider adapter. Static hosting serves only the client; it cannot supply server accounts, an always-running monitor or secret-bearing brokerage integration.
+
+Primary module boundaries:
+
+| Layer | Modules | Responsibilities |
+|---|---|---|
+| Market data | core, data | Validated raw OHLCV, sorted merge, time buckets, cache, pagination, connection lifecycle and explicit provenance. |
+| Display | renderer, chart, chart-types, drawings | Viewport transforms, derived display bars, instanced primitives, text overlays, hit testing and editing. |
+| Numerical | indicators, studies, analytics, orderflow | Float64 study arrays, profiles, screening, sessions, aligned data, observed trades and order book. |
+| Language | script | Lexer, AST, sequential interpreter, bounded stateful kernels and declarative plot/signal output. |
+| Execution | execution | Order state machine, signed-position ledger, raw-price historical execution and statistics. |
+| Jobs | worker, jobs, engine-worker | Legacy jobs and advanced computation; transferable typed outputs; cancellation and fallback. |
+| Persistence | workspace-v2, core | Versioned schemas, bounded import validation, immutable identities and compatible v1 workspace fields. |
+| UI | app, workbench, ui, server-client | DOM controls, interactions, revision ownership, panel state and same-origin service transport. |
+| Server | app, store, providers, monitor under server/ | Authentication, access control, atomic state replacement, fixed-host transport and polled rules. |
+
+Pure numerical modules do not import the DOM. The rendering layer does not submit brokerage orders. Worker outputs do not execute arbitrary callbacks. Credentials are not part of portable workspace schemas.
+
+## 2. Price, time and source identity
+
+Raw candles have the shape:
+
+```js
+{ t: 1704067200, o: 100, h: 105, l: 98, c: 103, v: 120 }
 ```
 
-`core.js` and `indicators.js` have no DOM dependencies. The numerical tests import the same functions as the app. The distribution builder packs these modules without replacing their algorithms. The worker uses the same indicator and backtest implementations as the synchronous fallback.
+`t` is UTC seconds at bucket open. Prices and volume are finite JavaScript numbers. OHLC ordering and nonnegative volume are validated; imported times are normalized and sorted. `partial` identifies an unfinished market bucket where available. No price precision is inferred from a chart's screen coordinates.
 
-## Data contract and time
+The chart retains raw market bars independently from display bars. Non-time transforms carry `sourceIndex`, `sourceTime` and `synthetic: true`. Repeated derived bricks may refer to the same source candle. They are not assigned invented unique market timestamps. Indicators are computed on raw bars and projected into derived display coordinates.
 
-A canonical bar is `{t,o,h,l,c,v}`. Time is nonnegative integer Unix seconds. Prices are quote currency per base asset, and volume is base-asset volume. A `partial` flag marks provisional bars. Bars are unique and sorted ascending by time. A high contains the entire OHLC range, a low bounds it from below, all entries are finite, and volume is nonnegative. Import validation runs before installation.
+Close-derived Renko, line-break, Kagi, point-and-figure and range are explicit approximations to missing tick paths. Changing the visual style never switches the execution dataset to those derived prices. `runBacktest` rejects bars flagged `synthetic`; explicitly labeled deterministic demonstration bars are still accepted as a demonstration raw dataset, not claimed to be market observations.
 
-The nominal interval is independent of a bar's array index. Gaps remain missing; no volume or executions are invented. Most intervals use `floor(t / interval) * interval`; weekly bars offset that calculation to ISO Monday 00:00 UTC. UTC is the only session/calendar convention in this build.
+Replay uses a prefix of raw history and recomputes the corresponding display/study prefix. Signals from a partial final bar do not become historical executions. An imported source label is user-supplied metadata, not cryptographic proof of origin.
 
-`CandleSeries.merge` is a sorted linear merge, with authoritative incoming bars replacing same-time bars. Untouched live bars retain first/last execution metadata. `tick` rejects invalid values, observations before the snapshot cutoff, duplicate trade IDs within the bounded deduplication window, and late observations for finalized older buckets. Within the active bucket it updates open/close by execution time, high/low by extrema, and volume by accepted size. A new bucket creates a provisional bar.
+## 3. Geometry pipeline
 
-A REST snapshot and a ticker stream do not form an atomic exchange snapshot. The recorded REST cutoff avoids double counting the already represented interval; it can omit trades that race the handoff. The implementation repairs finalized bars with later REST reconciliation instead of claiming exactly-once, lossless capture. This distinction also matters because this is a ticker-driven feed adapter, not an exchange matching-engine log.
+CPU prices, dates, statistics and studies stay in Float64 arithmetic. The chart converts world values to viewport-relative pixel coordinates before writing Float32 GPU instance data. This avoids placing epoch timestamps or large raw prices directly into low-precision shader coordinates.
 
-The application carries provenance separately from socket state. A connected socket is not proof that a synthetic or imported chart has become authoritative. Cached/imported/demo data are never relabeled as provider candles merely because a ticker arrives.
+Rectangles and line segments share a WGSL render pipeline. Each instance occupies 48 bytes. A reusable CPU geometry buffer is uploaded to a growable GPU vertex buffer and submitted as one instanced geometry draw for that renderer's submitted stream. There is still per-frame upload and CPU geometry construction; “one draw” does not mean all application rendering is free or that every chart shares one device submission.
 
-## Rendering pipeline
+Canvas supplies labels, crosshair, annotation text and the independent fallback geometry path. Rendering is invalidation-driven; changes schedule frames instead of redrawing an unchanged chart continuously. Main-bar culling, candle LOD aggregation and plot decimation reduce visible work. Some colored/script paths still process every visible bar. This release does not claim universal O(pixel-count) rendering or a measured hardware throughput.
 
-Each GPU instance is 48 bytes:
+Shared drawing geometry feeds painting and picking. Drawings persist semantic anchors rather than screenshots. Selection/dragging edits anchors; committed changes enter the existing undo stack. Objects retain stable IDs and have visibility, lock, group and ordering state. Manual pattern annotations are not pattern-recognition algorithms.
 
-| Float offsets | Field | Meaning |
-| --- | --- | --- |
-| 0–3 | `bounds: vec4f` | Rectangle x/y/width/height or line start-x/start-y/end-x/end-y |
-| 4–7 | `color: vec4f` | RGBA |
-| 8 | `meta.x` | Line thickness |
-| 9 | `meta.y` | Rectangle (0) or line (1) |
-| 10–11 | Reserved | Zero-filled |
+## 4. Numerical studies and jobs
 
-The vertex shader expands each instance into two triangles using `vertex_index`. A 16-byte viewport uniform maps local pixels into clip space. Lines compute a normalized perpendicular and extrude by half the width. Rectangles directly expand their bounds. The fragment shader outputs instance color with ordinary alpha blending. This is one pipeline and one instanced draw for the chart's submitted geometry, not one API call per candle.
+`STUDIES` is a registry of 33 study types, each with parameter validation and plot metadata. A workspace allows 32 independent instances. Warm-up or missing values use `NaN`, not invented zero prices. Recursive smoothing, rolling windows and oscillator degeneracies have explicit tested behavior. Prefix-causality tests verify that later bars do not alter earlier computed values for every registry type.
 
-All financial/time-to-screen transforms occur in float64 on the CPU. Only small viewport-local coordinates enter the float32 instance buffer. This avoids precision problems caused by uploading full timestamp magnitudes or large price offsets as shader floats. Charts share a device acquisition promise but have independent canvases, instance buffers, uniforms, and presentation contexts.
+Ichimoku does not backpaint future information into earlier execution bars. Prior-day pivots use the previous UTC day. Anchored and session VWAP use specified anchors/sessions, not hidden vendor calendars.
 
-`Geometry` uses a reusable Float32Array. CPU and GPU capacities grow geometrically; used prefixes are uploaded. The chart rebuilds only on invalidation. Visible index ranges bound candle work. When multiple candles fit in a screen pixel, open and close are taken from the first/last constituent and extrema/volume are preserved. Dense indicator paths preserve excursions through min/max decimation.
+Computation is currently batch-per-job, not an incremental streaming DAG and not GPU compute. The advanced job protocol is `{id, type, bars, options}`. Replies contain `{id, result}` or `{id, error}`. Typed output buffers are transferred with duplicate ArrayBuffers removed from the transfer list. Job IDs and workspace context reject stale results after data changes.
 
-The overlay is intentionally Canvas 2D: text, crosshair, labels, handles, and inspection details stay independent of the geometric GPU batch. CPU clipping limits line segments to the appropriate price/indicator panes. The fallback uses a separate Canvas surface because a single HTML canvas cannot simultaneously own independent WebGPU and 2D contexts. Device loss or uncaptured GPU failure hides the GPU surface and activates the fallback.
+A 30-second worker timeout terminates the worker, rejects pending work and starts a new worker. Cancellation does not return a fabricated partial result. When workers are unavailable, advanced jobs may run synchronously on at most 10,000 bars. The synchronous fallback cannot be preempted by a timer while JavaScript is executing; interpreter budgets still apply. This is an explicit fallback limitation.
 
-This is a GPU drawing engine, not a GPU indicator compute implementation. The indicators execute in JavaScript, normally off the main thread. CPU status timings must not be interpreted as timestamp-query GPU measurements. GPU shader validation and performance require a separate run on a real WebGPU-capable browser/device.
+## 5. AureonScript
 
-## Study definitions
+The interpreter accepts a documented original language, not full Pine Script. It tokenizes input, parses expressions with operator precedence, builds statement blocks from indentation, audits stateful call placement, and evaluates sequentially by bar.
 
-All numerical output arrays use float64. Undefined warm-up values are NaN and are not plotted.
+Source is never passed to JavaScript `eval` or `Function`. Calls use a fixed dispatch table and cannot access DOM, network, modules or arbitrary object properties. Memory/work limits constrain source length, AST nodes, AST-by-bars, variables, plots, history, recursion, loop iterations and evaluation operations. SCRIPTING.md is the normative language boundary.
 
-- **SMA(n):** rolling sum over n finite values divided by n.
-- **EMA(n):** seed with the first n-value SMA, then `E[t] = (2/(n+1))*x[t] + (1-2/(n+1))*E[t-1]`.
-- **Wilder RMA(n):** n-value SMA seed, then `(R[t-1]*(n-1)+x[t])/n`.
-- **RSI(n):** Wilder averages of positive and negative close deltas. Zero loss gives 100; a flat window with zero gain and loss gives 50.
-- **Bollinger:** SMA center and plus/minus multiplier times population standard deviation, using a removable rolling mean/M2 calculation rather than directly subtracting large raw squared sums.
-- **MACD:** fast EMA minus slow EMA, followed by a signal EMA; histogram is line minus signal.
-- **ATR:** Wilder average of `max(high-low, abs(high-prevClose), abs(low-prevClose))`; first-bar range is high-low.
-- **VWAP:** cumulative `(high+low+close)/3 * volume` divided by volume, reset at UTC midnight. On daily data this reset makes each daily value its own typical price; it is not a multi-day anchored VWAP.
-- **Stochastic:** raw %K from rolling highest high and lowest low; flat range gives 50; %D is a simple average of %K. Monotonic queues maintain extrema.
-- **OBV:** starts at zero, then adds signed bar volume according to close movement.
+Higher/equal-timeframe `request.security` reads only explicitly supplied datasets. A source value is available only after its source candle closes. Nested or lower-timeframe data requests and lookahead overrides are rejected. Plot arrays and strategy commands are declarative results. Strategy commands do not call a broker while the script is being evaluated.
 
-Studies operate on canonical OHLCV even when Heikin-Ashi is selected. Heikin-Ashi changes the display, not trade prices or imported source data. All functions are causal. Live recalculation coalesces pending work, but the study set is recomputed in O(n); this build does not claim a constant-time incremental accumulator for every study.
+## 6. Simulation and historical execution
 
-## Worker protocol
+`SimulationBroker` tracks cash, signed positions, marks, orders and fills in quote-currency units. Equity is cash plus signed marked holdings; exposure is the sum of absolute marked holdings. Short sale proceeds increase cash while the short holding remains a negative asset value.
 
-`ComputeClient.run(type, bars, options)` assigns a request id and returns a promise. The worker supports indicator calculation and backtesting. Output Float64Array buffers transfer rather than copying their numeric payload back. Input bar objects use structured cloning. Error replies preserve identity. The client times out stalled work, terminates an unusable worker, and invokes the same pure functions synchronously. Application-level load identity guards prevent stale study results from being installed after a symbol change.
+Fills use the supplied ask for buys and bid for sells, explicit slippage and commission. Limit prices cap fills; triggered stop-limits may remain unfilled after a gap. Partial fills consume the supplied observation's liquidity in order sequence. Weighted average cost, proportional entry-fee allocation, realized P&L and reversal accounting are reconciled by tests.
 
-## Drawing model
+Bracket children protect only the newly opened portion of a fill. An OCO partial exit reduces its sibling quantity by exactly that exit quantity; it does not prematurely cancel protection for the remaining position. Trailing stops move only in the favorable direction. Reduce-only orders cannot reverse a position. Pending orders do not reserve capital; buying power is checked at fill time. Maintenance handling liquidates only against an actual supplied quote for that symbol, without fabricating quotes for other holdings.
 
-A drawing has a persistent id, a supported type, one or two `{t,p}` anchors, a validated color, text metadata when relevant, and a locked/visible state. Geometry is stored in data coordinates, not screen pixels. Selection uses screen-space distance so hit tolerance remains usable at different zoom levels. Dragging converts pixels back to data coordinates; endpoint editing and translation are distinct operations. Snapping searches local candle OHLC candidates.
+Historical testing uses these conventions:
 
-Drawing transactions snapshot before/after arrays with structuredClone and a bounded 150-step undo stack. This favors simple, auditable immutable drawing history rather than a binary delta format. Undo/redo applies to drawing edits, not external market events or executed paper fills. Each symbol owns its own drawing collection.
+1. A command formed at confirmed close `i` first becomes executable at open `i + 1`.
+2. Existing gap-through protective orders are processed at the next open before new entry signals.
+3. The assumed intrabar path is open, adverse extreme, favorable extreme, close, relative to the held direction.
+4. A stop crossed between those observations fills at the observed path point plus slippage, not a retroactively guaranteed stop price.
+5. Raw OHLCV cannot establish tick sequence, depth or queue position. The tester assumes unlimited observation liquidity and has no borrow, funding, realistic impact, corporate actions or FX conversion.
+6. A final open position remains marked unless `liquidateEnd` is explicitly requested.
 
-## Backtest and paper engines
+UI optimization selects among 12 EMA pairs by training net profit only. Holdout execution starts flat; preceding bars may warm indicators but a signal before the holdout boundary cannot enter it. Selection on one holdout is not evidence of predictive profitability.
 
-The backtest evaluates a crossover at bars `i-2` and `i-1`, then executes at bar `i` open. A buy price includes positive slippage, a sell price negative slippage. Entry sizing divides allocated cash by `price*(1+fee)`, so allocated cash includes the fee. Exit proceeds subtract the exit fee. Equity is cash plus inventory marked at the bar close. Drawdown is measured against the running equity peak. Remaining inventory is reported as an open position, not a fictitious closing trade.
+Sharpe assumes zero risk-free rate and annualizes using observed average bar spacing. CAGR uses elapsed observed time. Undefined profit factor/Sharpe are represented as non-finite values internally and displayed as unavailable; they are not forced to zero.
 
-Paper accounting is event-driven from fresh bid/ask snapshots. It has cash, cost basis, quantities, realized results, submitted orders, and fills. Buys use ask, sells use bid. Selling removes average cost proportionally. Insufficient cash/inventory causes rejection; short positions are forbidden. Limit/stop tests apply to the relevant quote side. No depth consumption, latency simulation, queue priority, partial fills, cash reservation, or server-side execution is implemented. Quotes and decisions stop when the browser stops executing.
+## 7. Order flow, profiles, screening and research
 
-Financial arithmetic here is IEEE-754 float64 with small comparison tolerances, appropriate to this analytical/paper implementation. It is not a decimal/fixed-point exchange ledger and does not claim exchange-specific tick/lot rounding or settlement precision.
+The L2 adapter subscribes to Coinbase public `level2_batch`, accepts a complete valid snapshot atomically and applies absolute-size price-level changes; zero size deletes a level. Reconnection invalidates the previous book until a new snapshot. No disconnect is disguised as a fresh book. The adapter is not a certified lossless order-book archive.
 
-## Storage and trust boundaries
+Observed trades use exchange trade IDs for bounded deduplication. Coinbase match side identifies the maker, so aggressor direction is inverted when classifying buy/sell flow. Footprints retain a bounded window of actual observed trades. Their delta and CVD describe that retained observation set, not an unknown pre-connection market history.
 
-LocalStorage stores chart preferences/drawings, alert state, and the local paper ledger. IndexedDB caches candles and imported source history. JSON workspace export includes chart state and source bars, but not alerts or paper state. CSV and workspace input is validated and bounded. Text shown in HTML templates is escaped; supported drawing names and geometry schemas are whitelisted.
+OHLC volume profiles distribute total bar volume over its price range and are labeled approximations. TPO uses occupancy inferred from OHLC, not the exact time spent at each price. Tick profiles use observed prices and sizes only.
 
-The localhost server accepts GET/HEAD only, rejects hidden/path-traversal targets, and binds to loopback. Its optional data proxy permits only fixed Coinbase product endpoints and a small query allowlist. It does not accept an arbitrary upstream URL, expose API keys, trade, or relay arbitrary WebSocket traffic. There is no user authentication because there is no cloud account service in this project. The server is a development/local-use server, not a production multi-tenant reverse proxy.
+The screener computes values from explicit bars, preferring imported research universe data, then the watchlist. It uses bounded concurrent loading, not an invented global market catalogue. Fundamental/news/event records are imported data and are escaped before UI display. Only HTTP/HTTPS links become navigable. The heatmap weights loaded symbols by computed turnover. Spread OHLC bounds are conservative envelopes, not guaranteed realizable pairs of simultaneous prices.
 
-The single-file build uses inline scripts and a Blob worker. A strict hosted Content Security Policy must explicitly accommodate those or serve the modular build with an appropriate policy. Do not add secrets to a static client.
+## 8. Persistence and concurrency
 
-## Extension points and deliberately unsupported contracts
+Browser extensions use version 2; research uses version 1. Validation limits record counts, script sizes, nested layout depth, source bars, symbols, duplicate identities and field types. Reserved object keys are rejected where input becomes indexed state. Named layouts omit full raw history and nested saved layouts to avoid recursive expansion. Portable workspace export includes active raw history but excludes execution account ledgers and credentials. Browser rule engines and local execution ledgers are separately persisted.
 
-A new market adapter should normalize candles/quotes to the existing contracts and carry its own provenance and exchange-session rules. Corporate actions, non-UTC trading calendars, futures rolls, adjusted prices, and entitlement checks need explicit contracts rather than silently reusing 24/7 crypto semantics.
+The server store is a single-process copy-on-transaction queue. A validated replacement state is written to a temporary file and atomically renamed before the new in-memory state is published. Workspace revisions are compared inside this serialized transaction, not before it. Two concurrent writes to one revision cannot both succeed.
 
-Additional studies can extend the pure indicator module and worker protocol without changing the renderer. A fully configurable study editor, streaming incremental study caches, GPU text, richer chart layouts, and a typed strategy language are separate extensions, not implied existing features. Real brokerage execution requires authenticated server-side custody, order-lifecycle reconciliation, fixed-point rules, risk limits, and a substantially different trust model; it is intentionally absent.
+This is not a distributed database: no cross-process lock, replication, fsync-based power-loss guarantee, automatic backup or encryption at rest is implemented. Only one server process may own a data directory.
+
+## 9. Private service boundary
+
+Authentication uses scrypt password hashes and random opaque sessions whose hashes are stored. Writes require same-origin request checks plus CSRF. Workspaces, server alerts, private event streams and broker access enforce ownership server-side. Chart ideas are intentionally shared only on explicit publication.
+
+Broker access resolves the configured owner to an already existing user ID when the server starts. Registering that username while the process runs does not grant paper-account control. Credentials stay in process environment and go only to fixed provider hosts. No real-money brokerage destination exists in the adapter.
+
+The monitor groups enabled alerts by symbol/interval, polls fixed sources, keeps crossing baselines, checks each rule revision again before committing, and persists firing state/logs. Provider failures are exposed rather than treated as zero prices. SSE carries events only to the authenticated owner; expired/revoked sessions close streams. No external notification delivery, hosted availability or historical gap recovery is implied.
+
+See SECURITY.md, DATA_PROVIDERS.md and TESTING.md for operational boundaries and exact verification.

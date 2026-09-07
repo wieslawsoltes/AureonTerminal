@@ -1,0 +1,9 @@
+// AureonScript 1
+indicator("Adaptive trend", overlay=true)
+length = input.int(21, "Length", minval=1, maxval=500)
+fast = ta.ema(close, length)
+slow = ta.sma(close, length * 2)
+plot(fast, "Fast EMA", color.blue, 2)
+plot(slow, "Slow SMA", color.orange, 2)
+plotshape(ta.crossover(fast, slow), title="Bull cross", color=color.green, location=location.belowbar)
+alertcondition(ta.crossover(fast, slow), "Bull cross", "Fast EMA crossed above slow SMA")

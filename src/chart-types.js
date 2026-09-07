@@ -6,7 +6,8 @@ export const CHART_TYPES = Object.freeze({
   candles:'Candles', hollow:'Hollow candles', bars:'OHLC bars', line:'Line', area:'Area',
   heikin:'Heikin-Ashi', step:'Step line', baseline:'Baseline', columns:'Columns',
   hlc:'High–low–close', renko:'Renko · close-derived', linebreak:'Line break',
-  kagi:'Kagi · close-derived', pnf:'Point & figure', range:'Range · close-derived'
+  kagi:'Kagi · close-derived', pnf:'Point & figure', range:'Range · close-derived',
+  volumecandles:'Volume-width candles · fixed time',highlow:'High / low bars',hlcarea:'HLC band',linemarkers:'Line with markers',stepline:'Step with markers',circles:'Close markers',footprint:'Footprint · observed trades',tpo:'TPO · observed prices',tickcount:'Tick-count candles · actual trades',tradevolume:'Volume candles · actual trades',traderange:'Range candles · actual trades'
 });
 export const NON_TIME_TYPES = new Set(['renko','linebreak','kagi','pnf','range']);
 const limit = (out, n=100000) => { if (out.length >= n) throw new Error('Derived chart exceeds 100,000 elements. Increase the box size.'); };

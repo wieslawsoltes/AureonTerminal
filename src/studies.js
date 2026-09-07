@@ -1,3 +1,4 @@
+import {createExtraStudies} from './studies-extra.js';
 /** Configurable study registry. Outputs are aligned to raw source bars, float64.
  * No look-ahead/backfilling of warm-up observations. Gap behavior is explicit.
  */
@@ -57,3 +58,5 @@ export const STUDIES = {
 };
 export function studyParameters(type,raw={}){const def=STUDIES[type];if(!def)throw new Error('Unknown study: '+type);const out={};for(const spec of def.params){const v=Number(raw[spec.key]??spec.default);if(!Number.isFinite(v)||v<spec.min||v>spec.max||(spec.step===1&&!Number.isInteger(v)))throw new Error(`${spec.label} must be ${spec.min}–${spec.max}.`);out[spec.key]=v;}return out;}
 export function computeStudies(bars,specs=[]){if(!Array.isArray(specs)||specs.length>32)throw new Error('At most 32 study instances.');return specs.filter(s=>s.visible!==false).map(s=>{const d=STUDIES[s.type];if(!d)throw new Error('Unknown study '+s.type);const p=studyParameters(s.type,s.params),raw=d.calc(bars,p);return{id:s.id,type:s.type,name:s.name||d.name,overlay:s.overlay??!!d.overlay,levels:d.levels||[],range:d.range,plots:Object.entries(raw).map(([name,values],i)=>({name,values,color:i===0&&/^#[\da-f]{6}$/i.test(s.color||'')?s.color:C[i%C.length],width:s.width||1.5}))};});}
+
+Object.assign(STUDIES, createExtraStudies({extrema,wma,roc,regression}));

@@ -1,0 +1,7 @@
+import {Worker} from 'node:worker_threads';
+/** Interpreter isolated from HTTP process with hard memory/time/concurrency caps. */
+export class ServerScripts {
+  constructor({concurrency=2,timeout=4000}={}){this.concurrency=concurrency;this.timeout=timeout;this.running=new Set();}
+  run(source,bars,options={}){if(typeof source!=='string'||source.length>80000||!Array.isArray(bars)||bars.length>5000)return Promise.reject(new Error('Server script input limit exceeded'));if(this.running.size>=this.concurrency)return Promise.reject(Object.assign(new Error('Server script workers busy'),{status:429}));return new Promise((resolve,reject)=>{const worker=new Worker(new URL('./script-task.mjs',import.meta.url),{workerData:{source,bars,options},resourceLimits:{maxOldGenerationSizeMb:64,maxYoungGenerationSizeMb:16,stackSizeMb:2}});this.running.add(worker);let done=false;const finish=(error,result)=>{if(done)return;done=true;clearTimeout(timer);this.running.delete(worker);worker.terminate();error?reject(error):resolve(result);};const timer=setTimeout(()=>finish(new Error('Server script timed out')),this.timeout);worker.on('message',m=>finish(m.error?new Error(m.error):null,m.result));worker.on('error',e=>finish(e));worker.on('exit',code=>{if(!done)finish(new Error('Server script exited without result: '+code));});});}
+  async close(){await Promise.all([...this.running].map(w=>w.terminate()));}
+}

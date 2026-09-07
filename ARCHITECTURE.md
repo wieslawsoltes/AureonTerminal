@@ -1,10 +1,28 @@
-# Aureon Terminal 2.0 — architecture and semantics
+# v3 architecture delta
+
+The retained v2 core description follows; where scope differs, FEATURE_MATRIX.md and the following v3 boundaries govern.
+
+`chart-pro` and `tick-charts` generate observed-print geometry without inventing a tape. `chart-workspace` gives tiles their own series/history/studies/drawing commands while sharing a quote connection. `studies-extra`, `drawings-extra`, `patterns`, and `market-analytics` remain pure numerical/geometry modules. Raw execution data is separate from model/derived display data.
+
+`script-collections` exposes typed heap handles rather than JavaScript objects. The interpreter clones bar-boundary roots with a shared memo to preserve aliases; kernels and argument histories are keyed by call site. The realtime session API distinguishes ordinary rollback from varip state. Re-evaluation is bounded, not promised O(1) per tick.
+
+`execution-pro` extends the broker with conservative pending reservations, entry-ID/FIFO lots and explicit cash/corporate actions. Lot P&L adjusts the aggregate accounting to the chosen closing basis. The trade magnifier verifies print OHLCV and shares one liquidity budget across old/new orders. Queue and funding inputs are supplied assumptions, not exchange data.
+
+`services-pro` sits behind the existing Host/Origin/session/CSRF gate. Isolated Node script workers never receive provider credentials. Closed-bar monitor results recheck rule identity/revision before durable state and outbox commit. Delivery has leases/backoff and at-least-once semantics; push cryptography and fixed provider transports are independent of frontend code.
+
+`security-pro` encrypts MFA/VAPID secrets with purpose-bound AES-GCM; TOTP counters/recovery hashes prevent reuse. The private store fsyncs and atomically renames one-process transactions. Shared rooms use CAS, not CRDT. `live-gateway` is a distinct default-disabled authority; scripts and simulator code have no references to it. A manual preview/confirmation is consumed atomically before one provider submission, and uncertainty requires read-only client-ID reconciliation.
+
+The PWA caches only a public standalone shell. Docker/Caddy configuration is supplied, not deployed. The encrypted backup utility includes state plus vault key and requires an explicitly stopped server/new restore directory.
+
+---
+
+# Aureon Terminal 3.0 — architecture and semantics
 
 ## 1. Runtime boundaries
 
 The browser client is plain ES modules, HTML and CSS. No framework, hosted chart widget, third-party chart runtime or CDN dependency is present. `scripts/build-standalone.mjs` links local named imports into explicit module factories, embeds CSS/SVG, and constructs two worker bundles. The builder does not fetch dependencies or evaluate source dynamically.
 
-`server.mjs` is an optional native Node 22 server. It serves the client and implements private accounts, workspace storage, monitoring, chart ideas and a paper-only provider adapter. Static hosting serves only the client; it cannot supply server accounts, an always-running monitor or secret-bearing brokerage integration.
+`server.mjs` is an optional native Node 22 server. It serves the client and implements private accounts, workspace storage, monitoring, chart ideas and the existing paper-only provider adapter. v3 adds separately gated private services and a disabled-by-default manual production gateway (see SECURITY.md). Static hosting serves only the client; it cannot supply server accounts, an always-running monitor or secret-bearing brokerage integration.
 
 Primary module boundaries:
 
@@ -50,7 +68,7 @@ Shared drawing geometry feeds painting and picking. Drawings persist semantic an
 
 ## 4. Numerical studies and jobs
 
-`STUDIES` is a registry of 33 study types, each with parameter validation and plot metadata. A workspace allows 32 independent instances. Warm-up or missing values use `NaN`, not invented zero prices. Recursive smoothing, rolling windows and oscillator degeneracies have explicit tested behavior. Prefix-causality tests verify that later bars do not alter earlier computed values for every registry type.
+`STUDIES` is a registry of 73 study types (the v3 extension adds 40 to the original 33), each with parameter validation and plot metadata. A workspace allows 32 independent instances. Warm-up or missing values use `NaN`, not invented zero prices. Recursive smoothing, rolling windows and oscillator degeneracies have explicit tested behavior. Prefix-causality tests verify that later bars do not alter earlier computed values for every registry type.
 
 Ichimoku does not backpaint future information into earlier execution bars. Prior-day pivots use the previous UTC day. Anchored and session VWAP use specified anchors/sessions, not hidden vendor calendars.
 

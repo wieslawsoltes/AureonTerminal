@@ -1,0 +1,31 @@
+# Run from this folder after supplying deployment/.env (never commit it).
+# Bootstrap owner accounts locally without credentials before enabling services.
+services:
+  aureon:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      AUREON_ORIGIN: https://${AUREON_DOMAIN:?Set AUREON_DOMAIN}
+      AUREON_REGISTRATION: "0"
+    volumes:
+      - aureon-data:/var/lib/aureon
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    expose: ["4173"]
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      AUREON_DOMAIN: ${AUREON_DOMAIN:?Set AUREON_DOMAIN}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+volumes:
+  aureon-data:
+  caddy-data:
+  caddy-config:

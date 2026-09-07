@@ -1,96 +1,72 @@
-# Aureon Terminal 2.0 — delivered scope and remaining gaps
+# Aureon Terminal 3.0 — executable scope and remaining boundaries
 
-This is the release inventory, not a claim of complete TradingView parity. “Implemented” means executable source is present; it does not mean certified equivalent to TradingView, a tested production feed, or an audited financial service. Verification is separately recorded in TESTING.md. Imported or synthetic data is labeled and is never intentionally relabeled as live.
+This inventory replaces the v2 matrix (retained in `docs/V2_FEATURE_MATRIX.md`). It describes the repository, not full TradingView/Pine equivalence or a certified financial service. “Implemented” means working source and the specified interface exist. Verification, hardware limitations and provider-fixture boundaries are in `TESTING.md`.
 
-TradingView's public feature catalogue and Pine documentation were consulted as a scope reference on 2026-09-07. They describe a much broader commercial product, including its licensed data and hosted ecosystem. No proprietary implementation, charting library, Pine runtime, user scripts, or branding assets were copied.
+## Charting and editing
 
-## Rendering and chart workspace
-
-| Capability | Release status | Exact boundary |
+| Capability | v3 implementation | Boundary |
 |---|---|---|
-| Native WebGPU geometry | Implemented; hardware execution unverified here | Instanced rectangles/segments, reusable buffers, 48-byte instances; text/crosshair on separate Canvas. |
-| Independent Canvas renderer | Implemented and browser-tested | Used automatically when WebGPU initialization is unavailable. |
-| Standard charts | Implemented | Candles, hollow candles, OHLC, line, area, Heikin-Ashi, step, baseline, columns and HLC. |
-| Non-time charts | Implemented approximations | Close-derived Renko, line break, Kagi, point-and-figure and range; no reconstruction of unknown intrabar ticks. |
-| Price/time axes | Implemented | Linear/log/percentage, timezone display, manual/automatic scale, time pan/zoom, OHLCV crosshair inspection. |
-| Multi-chart layout | Implemented with limits | 1, 2, 4, 6 or 8 views; secondary symbol/interval selection; linked time navigation/crosshair. Secondary views are read-only history views, not fully independent live editors. |
-| Sessions | Implemented | IANA timezone, weekdays, open/close and user holidays; no maintained exchange-holiday database. |
-| Volume profiles / TPO | Implemented with explicit approximation | OHLC-distributed visible-range volume and OHLC occupancy TPO; observed-tick profile only when actual trades arrive. |
-| Footprint / depth | Implemented panels | L2 batch order book, observed price-level buy/sell volume, delta and retained CVD. Not a complete footprint ladder chart or guaranteed lossless history. |
-| Editing and persistence | Implemented | Drawing selection/anchors, snapping, undo/redo, object grouping/visibility/locking/order; named layouts, templates and portable JSON. |
-| Exports | Implemented | Workspace JSON, OHLCV CSV, screener CSV, strategy trade CSV, chart PNG, script text. |
-| Full chart-type catalogue | Not implemented | Volume-width candles, complete native footprint/TPO chart modes, all special marker/high-low variants and provider-equivalent tick/range construction. |
-| Full desktop/mobile parity | Not implemented | No native mobile apps, full accessibility certification, fully editable 16-view workspace, synchronized drawing replication, or exact pixel/workflow parity. |
+| Rendering | Native instanced WebGPU geometry, float64 financial coordinates transformed to local GPU pixels; independent Canvas fallback | Actual GPU hardware/performance remains unverified. Text is a Canvas overlay. |
+| Chart styles | **26** registered styles: previous 15 plus volume-width candles, high/low, HLC band, marker/step/circle variants, footprint, TPO, tick-count, trade-volume and observed-range candles | Volume-width candles retain the time axis. Older Renko/Kagi/P&F/line-break transforms remain explicit close-derived approximations. |
+| Tick/volume/range | Validated ascending actual observations; volume splits size without inventing intermediate prices | An observation feed can have gaps. There is no reconstructed lossless exchange tape. Range overshoots reflect actual gaps. |
+| Footprint/TPO | Price-level aggressor buy/sell/unknown volume, delta/CVD/POC; observed price/UTC-period TPO letters; replay excludes future observations | Not every commercial footprint presentation/imbalance mode; no unobserved prices filled in. Same-time trade bars have timestamp-anchor ambiguity. |
+| Multi-chart workspace | **1/2/4/6/8/16** views; each secondary view has editable drawings, undo/redo, scales, studies, history pagination and a shared live ticker connection | Trade data in secondary charts covers ticker observations since loading, not historical tick retrieval. Primary instrument retains execution focus. |
+| Synchronization | Linked time/crosshair; explicit opt-in drawing replication among matching symbols | Replication replaces that symbol’s drawing snapshot; it is not per-object CRDT merging. |
+| Mobile/offline | Responsive workspaces, focus indicators, keyboard navigation, textual OHLCV export/table, print view, installable offline shell | No native App Store binaries or accessibility certification; service workers require supported secure origins. |
 
-## Studies, drawings and scripting
+## Studies, drawings and patterns
 
-**33 configurable study types:** EMA, SMA, WMA, HMA, RMA, VWMA, DEMA, TEMA, Bollinger Bands, RSI, MACD, ATR, Stochastic, Stochastic RSI, OBV, session VWAP, anchored VWAP, Donchian, Keltner, Supertrend, Parabolic SAR, DMI/ADX, CCI, MFI, Williams %R, ROC, momentum, CMF, accumulation/distribution, linear regression, Awesome Oscillator, Ichimoku and previous-day pivots. Up to 32 independent configurable instances are supported. The original nine quick-study toggles remain available; these are not nine additional unique study types.
+**73 study types** are registered, up from 33; **66 drawing tools**, up from 37. Counts are derived from the registries, not marketing aliases. Existing template/parameter/color/visibility/pane controls work with the expanded catalogues. Prefix-causality and geometry tests enumerate all registered types.
 
-**37 drawing tools:** trend line, ray, extended line, arrow, horizontal line, vertical line, horizontal ray, parallel channel, pitchfork, regression channel, Fibonacci retracement/extension/fan/time/channel/circles, Gann fan, rectangle, ellipse, triangle, rotated rectangle, polyline, brush, long/short position annotations, price/time measure, date range, price range, text, callout, price note, buy/sell marker, XABCD, Elliott impulse/correction, and head-and-shoulders.
+The additional studies include ALMA, KAMA, ZLEMA, McGinley, Aroon, Vortex, Choppiness, Ultimate Oscillator, TSI, TRIX, PPO/PVO, Coppock, CMO, Fisher, Force, Elder Ray, PVT/NVI/PVI, Chaikin, Ease of Movement, Mass/Ulcer indices, historical volatility, percentile rank, regression slope and confirmed fractals. Statistical windows retain warm-up gaps.
 
-Pattern tools place and edit annotations; they do not automatically detect patterns. Gann geometry is screen-projected, not a full fixed market-price/time angle model. Position annotations display reward/risk but do not themselves submit orders.
+New drawings include pitchfork variants, channels, arrows, angles, Fibonacci arcs/wedges/log spirals, price/time Gann constructions, polygon/Bezier/highlighter/arc, cyclic projections, anchored labels/VWAP and pattern annotations. They are editable geometry, not trading signals or forecasts.
 
-| Capability | Release status | Exact boundary |
+Automatic detection now covers candlestick patterns, confirmed pivots, double/triple tops and bottoms, head-and-shoulders/inverse, triangles/wedges, harmonic and constrained Elliott-impulse candidates. Each result carries an observation/confirmation time; future pivots cannot appear in an earlier prefix. These are rule-based candidates, not recognition accuracy guarantees or a complete pattern taxonomy. The registry is still **not the entire TradingView catalogue**.
+
+## Scripting and strategy semantics
+
+| Capability | v3 implementation | Boundary |
 |---|---|---|
-| Study parameters / templates | Implemented | Independent periods, colors, placement, visibility and saved sets; batch Float64 computation. |
-| Original scripting language | Implemented | AureonScript lexer, Pratt parser, AST interpreter, sequential series, inputs, plots, fills, colors, alerts and strategy commands. |
-| History and higher-timeframe series | Implemented with limits | Nonnegative history; imported higher/equal-timeframe datasets only, after source close. |
-| Script editor | Implemented | Text editor, line gutter, examples, diagnostics, inputs, execute/cancel/save/export. |
-| Full Pine v6 compatibility | Not implemented | No arrays/maps/tuples/UDTs/methods/libraries, comprehensive builtin set, exact rollback semantics, lower-timeframe requests or complete broker-emulator semantics. |
-| Pine cloud IDE / ecosystem | Not implemented | No Pine profiler, library marketplace, proprietary server runtime, TradingView script import or community catalogue. |
-| Entire built-in study/drawing catalogue | Not implemented | The enumerated types are the implemented registry; unsupported studies are not silently substituted. |
-| Automatic pattern recognition | Not implemented | No automatic candlestick, harmonic, Elliott-wave or chart-pattern scanner. |
+| Collections/types | Bounded typed arrays/maps/matrices, tuples, record fields, methods and multiline functions | Not all Pine type qualifiers, overloads, collection methods or builtin functions. |
+| Series functions | Call-site-isolated histories; alias-preserving bar-boundary collection snapshots | Explicit operation/history/allocation/string budgets can reject large programs. |
+| Libraries | Explicit versioned local imports with exported functions; immutable public/private server catalogue | Original AureonScript only. No TradingView marketplace import, proprietary runtime or licensing access. |
+| Realtime | `RealtimeScriptSession` API with ordinary rollback, `varip` updates and `barstate.isnew`; closed lower-timeframe arrays from supplied datasets | API-level session; standard chart batch jobs do not claim tick-for-tick Pine runtime parity. |
+| Profiling/screening | Executed-line operation profile, heap counters; script screening over up to 50 explicitly loaded universe datasets | Not a distributed global screener; no automatic universal historical database. |
+| Strategy commands | Named entries, targeted closes, close-all, limit/stop entries, exits/OCO, cancellation; next-bar execution in the portfolio tester | No complete Pine broker feedback (`strategy.position_size` etc.), every order qualifier, broker certification or intrabar recalculation semantics. |
 
-## Strategy testing and execution
+**Full Pine v6 compatibility and full Pine cloud IDE/ecosystem remain unimplemented.** The additions are a substantive expansion of an original interpreter, not a renamed proprietary runtime. Unsupported syntax fails explicitly. See `SCRIPTING.md`.
 
-| Capability | Release status | Exact boundary |
+## Execution and financial analytics
+
+The simulator adds conservative pending-capital reservations, entry-ID/FIFO lots, pyramiding limits, targeted exits, explicit borrowing/cash/funding accrual, splits/dividends, multicurrency cash valuation, option exercise settlement and a parameterized queue/impact model. Core-only accounting operations have explicit JSON tools in Pro. The queue’s supplied ahead volume is an assumption, not exchange matching access.
+
+The trade magnifier accepts an actual-print dataset only when its aggregates reconcile raw OHLCV. One print’s finite liquidity budget cannot be spent twice. Without that dataset, the tester documents its adverse-first OHLC path; it does not synthesize a tick tape. Corporate actions and accrual are explicit events/period assumptions, not a maintained brokerage accounting service.
+
+Research models include European Black–Scholes value/Greeks, implied volatility, American CRR trees, option portfolios and expiry payoff, bond cash-flow price/yield/duration/convexity/DV01, discount/forward curves, financial ratios, macro transforms, as-of corporate adjustments, explicit-schedule futures rolling, fresh-quote FX valuation, holdings exposures and constant-product AMM/impermanent-loss calculations. These are model results, not executable quotes or predictions.
+
+### Real-money adapter — disabled by default
+
+A separate fixed-host Alpaca production adapter is implemented, **not activated or exercised with real credentials**. Only a pre-existing configured MFA owner over HTTPS can manually preview and confirm whole-share, long-only, DAY limit equity orders. Every submission needs the exact immutable confirmation phrase and an unused MFA/recovery code. Fresh quotes, cash/position checks, per-order/daily attempted-notional caps, unique client IDs and explicit reconciliation guard uncertain outcomes. No script, alert, simulation ticket or workspace import invokes it.
+
+This is **not** a general real-money brokerage network: no shorting, options orders, broker OAuth federation, custody, exchange certification, full cancel/replace workflow or operational approval. Credentials and live enablement require operator decisions outside the source. See `SECURITY.md`.
+
+## Data and research providers
+
+| Provider | Implemented adapter | Requirements / limits |
 |---|---|---|
-| Advanced historical tester | Implemented | Long/short positions, confirmed-close signals, next raw-bar-open fills, fees, slippage, allocation, leverage and protective stops/takes. |
-| Statistics | Implemented | Equity, drawdown, realized trades, fees, win rate, profit factor, expectancy, Sharpe and CAGR in core; principal metrics and curves in UI. |
-| Parameter selection | Implemented | UI: 12 EMA pairs, 70% training / 30% holdout. Core permits bounded grids up to 200 runs. Not a general optimization platform. |
-| Order state machine | Implemented | Market, limit, stop-market, stop-limit, absolute-distance trailing, GTC/IOC, reduce-only, expiry, partial fills, bracket children and partial OCO reduction. |
-| Amendments and liquidity | Engine implemented | Amend validated residual quantities/prices; finite-liquidity tick processing. UI does not expose every core option or simulate an exchange queue. |
-| Accounts and margin | Local simulation | Signed positions, average cost, commissions, mark-to-market, fill-time buying power and maintenance checks. No pending-order capital reservation. |
-| Replay trading | Implemented | Next-bar execution after submission; rewind invalidates ledger and requires reset rather than inventing historical rollback. |
-| Optional external paper account | Implemented adapter; credentials required | Fixed Alpaca paper host, account/order/cancel APIs, explicit confirmation and pre-existing owner authorization. Protocol fixtures tested, no authenticated live service test. |
-| Real-money trading | Not implemented | No production order destination, exchange matching access, custody, broker OAuth network or real-money order router. |
-| Full market microstructure | Not implemented | No tick reconstruction, limit queue priority, borrow/funding charges, realistic market impact, FX conversion, options exercise or corporate-action accounting. |
-| Full broker emulator | Not implemented | No complete Pine order semantics, pyramiding/entry-ID ledger, tick-level bar magnifier or exchange certification. |
+| Coinbase Exchange | Public candles, pagination, ticker/heartbeat, L2 and observed trades | Network availability and product support; no lossless history claim. |
+| Alpaca data | Existing raw equity bars; new option-chain snapshots and metadata/headline news | Server-side credentials, a pre-existing research owner and appropriate data entitlement. Indicative is the default option feed. |
+| FRED/ALFRED | Series observations with an explicit requested vintage | Operator API key; revisions are not silently presented as historical knowledge. |
+| SEC EDGAR | XBRL company facts retaining native filing dates and units | Numeric CIK and operator contact User-Agent; no universal normalized statements model. |
+| Imported datasets | OHLCV, trades, research, events, fundamentals, curves, holdings and roll schedules | Values retain supplied provenance; no false live label. |
 
-## Data, screening and research
+Global exchange licences, every market/asset class, a maintained corporate-action/calendar database, complete economic-event service, universal ETF/DEX discovery, fully normalized global fundamentals, real-time options analytics entitlement and guaranteed historical ticks are **not supplied**. Model engines and fixed-provider adapters do not confer those rights or create the datasets.
 
-| Capability | Release status | Exact boundary |
-|---|---|---|
-| Public crypto transport | Implemented | Coinbase Exchange USD products, candle history and pagination, ticker/heartbeat, public L2 batch and observed trades. Network access required. |
-| Equities history | Optional adapter | Server-side Alpaca raw historical stock bars with account-entitled feed and bounded pagination. No claimed universal equities coverage. |
-| Local data | Implemented | Validated CSV, workspace history, research-universe JSON and labeled deterministic demonstration. |
-| Screener and heatmap | Implemented | Computed values from imported universe or current watchlist; local filters/sorting; turnover-weighted rectangles. Last-bar change is not automatically 24-hour change. |
-| Comparisons and spread | Implemented | Loaded dataset comparisons and conservative OHLC spread bounds; not an executable spread instrument. |
-| Research panels | Implemented import/display | Events, news and fundamental metrics supplied in explicit versioned JSON; seasonality calculated from available months. |
-| Global market data | Not supplied | No consolidated exchange licences, guaranteed real-time stocks/futures/options/FX, complete historical ticks, maintained corporate actions or automatic futures roll adjustment. |
-| Full research suite | Not implemented | No live newswire/economic-calendar provider, complete financial statements database, options chain/Greeks, bond/yield-curve analytics, macro dashboards or ETF/DEX-wide data service. |
-| Full screening suite | Not implemented | No global exchange-wide database, hundreds of fundamental fields, script-based distributed screener or complete asset-class coverage. |
+## Private hosting, alerts and collaboration
 
-## Private server and collaboration
+Implemented: scrypt sessions/CSRF, MFA enrollment/TOTP replay prevention/recovery codes, session revocation/password changes, encrypted-at-rest MFA/VAPID secrets, tamper-evident audit chains, transactional workspace/room revisions, private/public versioned libraries, follows, opt-in private messaging, bilateral blocks, reports and operator-bound moderation.
 
-| Capability | Release status | Exact boundary |
-|---|---|---|
-| Accounts / sessions | Implemented | Salted scrypt hashes, opaque hashed sessions, CSRF, same-origin writes, expiry and rate limits. |
-| Saved workspaces | Implemented | Owner isolation, UUID identities and transactional compare-and-swap revisions; conflicts reject stale writes. |
-| Persistent alerts | Implemented | Stored rule configuration/last firing/log; polling survives browser closure while Node process and provider remain available. |
-| Rule types | Implemented | Crossings/comparisons/ranges/percent changes, conjunction/disjunction, frequency/cooldown/expiry; client sources include custom studies/scripts. Server sources are a fixed whitelist. |
-| Alert delivery | Implemented | In-app log and authenticated SSE. Persistent recent events can be retrieved later. |
-| Shared ideas | Implemented | Explicit snapshot publication, server-local feed, comments, likes, owner deletion and loading a shared chart. |
-| Complete alert hosting | Not implemented | No hosted SLA, distributed scheduler, server-side script execution, drawing-geometry alerts, external email/SMS/webhook/web-push delivery or offline-provider backfill. |
-| Social platform parity | Not implemented | No TradingView user graph, messaging, moderation platform, competition service, broker reviews or real-time collaborative document editing. |
-| Production infrastructure | Not supplied | No deployment, TLS certificate management, MFA, recovery, email verification, audit certification, HA database, replication or guaranteed recovery point. |
+Server-side script and drawing-line monitors use closed bars, isolated workers with memory/time/concurrency limits, durable crossing state and edit/deletion rechecks. Persistent rules can enqueue opt-in email (Resend), SMS (Twilio), signed operator-allowlisted HTTPS webhooks and encrypted Web Push, in addition to in-app/SSE. The durable outbox has leases, retry/backoff and terminal failures. Delivery is at-least-once, not exactly-once; provider acceptance is not proof of recipient receipt. Offline-provider backfill and distributed scheduling remain absent.
 
-## Reference catalogue
-
-- TradingView features: https://www.tradingview.com/features/
-- Pine execution model: https://www.tradingview.com/pine-script-docs/language/execution-model/
-- Pine strategies: https://www.tradingview.com/pine-script-docs/concepts/strategies/
-- Coinbase channels: https://docs.cdp.coinbase.com/exchange/websocket-feed/channels
-- Alpaca paper trading: https://docs.alpaca.markets/us/docs/paper-trading
-
-The inventories above are derived from this release's source. External references describe those providers/products, not an endorsement or proof of Aureon's equivalence.
+A Docker/Caddy deployment configuration and encrypted offline backup/restore utility are included. The JSON store is **single-process**, serialized and fsynced; it is not a replicated HA database. Operator hosting, DNS/TLS provisioning, monitoring, backups/restore rehearsals, email ownership verification, account-recovery support, abuse operations, compliance audits and an uptime/RPO SLA remain outside this delivered installation. No production infrastructure has been deployed by this PR.

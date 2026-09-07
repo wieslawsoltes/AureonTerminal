@@ -1,0 +1,9 @@
+.git
+.aureon-data
+.env
+.env.*
+node_modules
+*.zip
+*.backup
+verification
+__pycache__

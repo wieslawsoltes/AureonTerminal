@@ -5,3 +5,6 @@ node_modules/
 !.env.example
 *.log
 __pycache__/
+
+*.backup
+_site/

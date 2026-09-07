@@ -1,3 +1,4 @@
+import {EXTRA_DRAWING_TOOLS,extraDrawingGeometry} from './drawings-extra.js';
 /** Shared geometric construction for rendering AND picking. Coordinates are
  * logical chart pixels; persistent anchors always remain timestamp/price pairs.
  */
@@ -10,8 +11,10 @@ export const DRAWING_TOOLS={
   text:{name:'Text',points:1,category:'Annotation'},callout:{name:'Callout',points:2,category:'Annotation'},note:{name:'Price note',points:1,category:'Annotation'},buy:{name:'Buy marker',points:1,category:'Annotation'},sell:{name:'Sell marker',points:1,category:'Annotation'},
   xabcd:{name:'XABCD pattern',points:5,category:'Patterns'},elliott:{name:'Elliott impulse',points:6,category:'Patterns'},abc:{name:'Elliott correction',points:4,category:'Patterns'},headshoulders:{name:'Head & shoulders',points:7,category:'Patterns'}
 };
+Object.assign(DRAWING_TOOLS,EXTRA_DRAWING_TOOLS);
 export const LEGACY_DRAWINGS=new Set(['trend','ray','hline','vline','fib','rectangle','text','measure']);
 export function drawingGeometry(d,chart){
+  const extra=extraDrawingGeometry(d,chart);if(extra)return extra;
   const p=d.points.map(x=>({x:chart.toX(chart.timeIndex(x.t)),y:chart.toY(x.p)})),a=p[0],b=p[1]||a,c=p[2]||b,segments=[],rects=[],labels=[];
   if(!a)return{segments,rects,labels};const line=(a,b,alpha=1)=>segments.push({a,b,alpha}),label=(v,text)=>labels.push({x:v.x,y:v.y,text:String(text)}),extend=(a,b,both=false)=>{const dx=b.x-a.x,dy=b.y-a.y;if(Math.abs(dx)<.001){line({x:a.x,y:both?chart.price.y:a.y},{x:a.x,y:dy>=0?chart.price.y+chart.price.h:chart.price.y});return;}const end=dx>0?chart.plotWidth:0,start=both?(dx>0?0:chart.plotWidth):a.x;line({x:start,y:a.y+(start-a.x)*dy/dx},{x:end,y:a.y+(end-a.x)*dy/dx});};
   const chain=pts=>{for(let i=1;i<pts.length;i++)line(pts[i-1],pts[i]);};

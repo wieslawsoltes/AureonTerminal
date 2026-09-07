@@ -46,6 +46,7 @@ export class SimulationBroker {
       if(!eligible){if(o.timeInForce==='IOC')o.status='canceled';continue;}
       let qty=Math.min(o.quantity-o.filled,available);const p=this.positions[symbol]||{quantity:0,average:0,entryFees:0,entryTime:time,realized:0};
       if(o.reduceOnly){if(p.quantity===0||Math.sign(p.quantity)===(buy?1:-1)){o.status='canceled';continue;}qty=Math.min(qty,Math.abs(p.quantity));}
+      if(this.filterFillQuantity)qty=this.filterFillQuantity(o,qty);
       if(qty<=1e-12){if(o.timeInForce==='IOC')o.status='canceled';continue;}
       let fillPrice=quote*(1+(buy?1:-1)*this.slippageBps/10000);
       if(o.type==='limit'||o.type==='stop-limit')fillPrice=buy?Math.min(fillPrice,o.limit):Math.max(fillPrice,o.limit);
@@ -63,14 +64,14 @@ export class SimulationBroker {
       else if(qty>Math.abs(p.quantity)+1e-12){p.average=fillPrice;p.entryTime=time;p.entryFees=fee-exitFee;}
       else if(Math.abs(newQty)<1e-12){p.average=0;p.entryFees=0;}
       p.quantity=Math.abs(newQty)<1e-12?0:newQty;p.realized+=net;this.positions[symbol]=p;this.cash-=signed*fillPrice+fee;this.realized+=net;this.totalFees+=fee;
-      o.average=(o.average*o.filled+fillPrice*qty)/(o.filled+qty);o.filled+=qty;o.status=o.filled>=o.quantity-1e-12?'filled':'partial';o.updated=time;this.fills.push(fill);result.push(fill);available-=qty;
+      o.average=(o.average*o.filled+fillPrice*qty)/(o.filled+qty);o.filled+=qty;o.status=o.filled>=o.quantity-1e-12?'filled':'partial';o.updated=time;this.fills.push(fill);result.push(fill);this.onFill?.(fill,o,p);available-=qty;
       // Reduce the sibling by exactly the amount executed; partial OCO exits remain protected.
       if(o.group)for(const sibling of this.orders)if(sibling.id!==o.id&&sibling.group===o.group&&ACTIVE.has(sibling.status)){sibling.quantity=Math.max(sibling.filled,sibling.quantity-qty);if(sibling.quantity<=sibling.filled+1e-12)sibling.status='canceled';}
       const opened=qty-closeQty;
       if(o.bracket&&opened>0){const group=uid(),side=buy?'sell':'buy';if(o.bracket.takeProfit!=null)this.submit({symbol,side,type:'limit',quantity:opened,limit:o.bracket.takeProfit,reduceOnly:true,group},time);if(o.bracket.stopLoss!=null)this.submit({symbol,side,type:'stop',quantity:opened,stop:o.bracket.stopLoss,reduceOnly:true,group},time);}
       if(o.timeInForce==='IOC'&&ACTIVE.has(o.status))o.status='canceled';
     }
-    if(liquidate&&this.exposure()>0&&this.equity()<this.exposure()*this.maintenance){this.cancelAll();for(const[s,p]of Object.entries(this.positions)){if(s!==symbol||!p.quantity)continue;const o=this.submit({symbol:s,side:p.quantity>0?'sell':'buy',quantity:Math.abs(p.quantity),reduceOnly:true},time);o.reason='Simulated maintenance-margin liquidation';result.push(...this.tick({symbol,time,price,bid,ask},{liquidate:false}));}}
+    if(liquidate&&this.exposure()>0&&this.equity()<this.exposure()*this.maintenance){this.cancelAll();for(const[s,p]of Object.entries(this.positions)){if(s!==symbol||!p.quantity)continue;const o=this.submit({symbol:s,side:p.quantity>0?'sell':'buy',quantity:Math.abs(p.quantity),reduceOnly:true},time);o.reason='Simulated maintenance-margin liquidation';result.push(...this.tick({symbol,time,price,bid,ask,liquidity:available},{liquidate:false}));}}
     return result;
   }
   snapshot(){return{version:1,initial:this.initial,cash:this.cash,feeBps:this.feeBps,slippageBps:this.slippageBps,maxLeverage:this.maxLeverage,maintenance:this.maintenance,orders:this.orders,fills:this.fills,positions:this.positions,marks:this.marks,markTimes:this.markTimes||{},sequence:this.sequence,realized:this.realized,totalFees:this.totalFees,lastTime:this.lastTime};}
@@ -118,7 +119,7 @@ export function runBacktest(bars,{commands=[],initial=100000,feeBps=10,slippageB
     // A holdout window starts flat: do not use a signal formed before its boundary.
     if(i>start)for(const c of byIndex.get(i-1)||[]){
       const p=broker.positions[symbol]?.quantity||0;
-      if(c.action==='close'||(c.action==='entry'&&p&&Math.sign(p)!==c.direction)){
+      if(c.action==='close'||c.action==='close_all'||(c.action==='entry'&&p&&Math.sign(p)!==c.direction)){
         broker.cancelAll(symbol);if(p){broker.submit({symbol,side:p>0?'sell':'buy',quantity:Math.abs(p),reduceOnly:true},b.t);tick(b.o,0);}
       }
       if(c.action==='entry'&&(c.direction>0||allowShort)&&!broker.positions[symbol]?.quantity){

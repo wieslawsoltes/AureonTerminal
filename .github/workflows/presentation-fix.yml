@@ -1,0 +1,48 @@
+name: Verify real-display WebGPU presentation test setup
+on:
+  push:
+    branches: [transfer/v43-presentation-fix]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Decode bounded exact patch
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,lzma,os
+          from pathlib import Path
+          raw=base64.b64decode(Path('.github/presentation-patch.b64').read_text('ascii'),validate=True)
+          assert hashlib.sha256(raw).hexdigest()=='3889eca0ccc530c9e3742bda04dfafe83bf9bbd043822187edc77eb9503ea206'
+          decoder=lzma.LZMADecompressor(memlimit=256*1024*1024)
+          patch=decoder.decompress(raw,max_length=10799)
+          assert decoder.eof and not decoder.unused_data and len(patch)==10798
+          assert hashlib.sha256(patch).hexdigest()=='590764e870fb6fe6e36a693b237825ab0367d13dd1fad06f0c2fa27734be9345'
+          Path(os.environ['RUNNER_TEMP'],'presentation.patch').write_bytes(patch)
+          PY
+      - name: Verify exact source tree, reference guard and regression tests
+        run: |
+          set -euo pipefail
+          git checkout --detach 2db0ab0216f1a5be7bc3e8455263d2c57fd292b1
+          git apply --check "$RUNNER_TEMP/presentation.patch"
+          git apply "$RUNNER_TEMP/presentation.patch"
+          npm run build
+          echo '81e5237389845cae5dd88076801ed8e8bb3f1f0438e9ac0b09a52bcb4b74a874  dist/AureonTerminal.html' | sha256sum -c -
+          npm run references
+          npm run check
+          python3 -m py_compile scripts/verify-browser-v43.py
+          git add --all
+          test "$(git write-tree)" = 68b19ea2c9be16fbc5143c821d64702f0bb1ce59
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test: require visible WebGPU presentation with CI virtual display'
+          git log -1 --format='%H %T' >> "$GITHUB_STEP_SUMMARY"
+          git push origin HEAD:refs/heads/transfer/v43-presentation-output

@@ -1,0 +1,63 @@
+name: Record verified renderer CI evidence
+on:
+  push:
+    branches: [transfer/v43-record-evidence]
+permissions:
+  contents: write
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Update verification snapshot and current documentation
+        run: |
+          git checkout --detach d23b3b6316642ee813a811cd381518f2eb7a4e2a
+          python3 - <<'PY'
+          from pathlib import Path
+          r=Path('.')
+          for name in ['README.md','FEATURE_MATRIX.md','ARCHITECTURE.md']:
+            p=r/name;s=p.read_text();lines=s.splitlines();lines[0]=lines[0].replace('4.0','4.3').replace('4.2','4.3');s='\n'.join(lines)+'\n'
+            if name=='README.md':
+              s=s.replace('Pending operations stay in tab session storage until acknowledged. Reloading and explicitly rejoining recovers them; **Flush and leave** refuses to discard failed writes. Closing the tab can clear that storage.', 'Pending operations are stored transactionally in IndexedDB until acknowledged. Explicitly rejoining recovers committed edits after reload or tab closure; **Flush and leave** refuses to discard failed writes. Browser eviction, clearing site data, or closing before transaction completion can still lose edits.')
+            if name=='ARCHITECTURE.md':
+              s=s.replace('Private event streams are process-local; durable logs can be read from another process.', 'Private event-stream sockets are process-local, but a transactionally committed event journal propagates authorized changes across same-host SQLite processes and supports bounded cursor replay.')
+            if name=='FEATURE_MATRIX.md':
+              s=s.replace('Hardware GPU execution and throughput have not been verified in this environment.', 'Actual WGSL execution, visible pixels and device-loss recovery are tested on SwiftShader; physical GPU execution and throughput remain unverified.')
+            p.write_text(s)
+          p=r/'scripts/verify-browser-v43.py';p.write_text(p.read_text().rstrip()+'\n')
+          p=r/'TESTING.md';s=p.read_text();s=s.replace('Results remain pending until a successful CI report is inspected.', 'The complete CI report for source snapshot `d23b3b6316642ee813a811cd381518f2eb7a4e2a` was downloaded, hash-verified and inspected: all 11 renderer groups pass. Later commits require their own passing checks.')
+          section='''## Verified v4.3 CI snapshot
+
+          Source snapshot: `d23b3b6316642ee813a811cd381518f2eb7a4e2a`.
+
+          - [Source/test/build workflow](https://github.com/wieslawsoltes/AureonTerminal/actions/runs/34168027100): **591 tests passed**, independent reference guard and reproducible standalone build passed.
+          - [Browser workflow](https://github.com/wieslawsoltes/AureonTerminal/actions/runs/34168027160): **71 groups passed** (31 + 11 + 8 + 10 inherited, plus 11 renderer groups), zero captured page JavaScript errors.
+          - Artifact `aureon-v4-chromium-34168027160`, SHA256 `ac565b4b473658bd38cf99da79c9c637ef51944e0f8e67cb7a80fb7ab1d6f6b3`, was downloaded and all five JSON reports inspected. Renderer images include `workspace-webgpu.png` and `gpu-presentation.png`.
+          - Actual WebGPU used Chromium 151.0.7922.34 with the SwiftShader fallback adapter, a headed window and Xvfb. The three screenshot pixels and six independent readback fixtures pass. Device destruction/reacquisition, two-chart isolation, 4x MSAA, high-DPI readback, resize, controls and export pass. This is real shader/API execution on a **software** device, not physical GPU throughput or full conformance certification.
+
+          The application source and standalone distribution are unchanged by this evidence-only documentation update. Every subsequent PR head still runs the full suites; this immutable snapshot is not a substitute for its checks.
+
+          '''
+          s=s.replace('## Local checks\n',section+'## Local checks\n');p.write_text(s)
+          PY
+      - name: Verify evidence update does not change the application
+        run: |
+          set -euo pipefail
+          npm run build
+          echo '81e5237389845cae5dd88076801ed8e8bb3f1f0438e9ac0b09a52bcb4b74a874  dist/AureonTerminal.html' | sha256sum -c -
+          npm run references
+          npm run check
+          git add --all
+          git diff --cached --check
+          test "$(git write-tree)" = 764f40ec3d462170f0bb8c90249997f239908880
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs: record actual WebGPU verification and current release boundaries'
+          git log -1 --format='%H %T' >> "$GITHUB_STEP_SUMMARY"
+          git push origin HEAD:refs/heads/transfer/v43-evidence-output

@@ -109,3 +109,29 @@ The AVL multiset stores duplicate multiplicities and subtree counts. Insert/evic
 The pool owns its workers independently of chart and realtime sessions. A run identity fences every progress/result callback. Cancellation terminates that pool, rejects in-flight requests, and prevents late output from touching a newer run. Worker failure is not silently resumed through a fresh stateless fallback. An initially workerless environment has an explicit 10,000-total-bar and 250,000-operations-per-symbol ceiling. `JobClient` rejects work after disposal and cleans pending bookkeeping on synchronous structured-clone failures.
 
 `screening-query.js` interprets only an allowlisted, bounded predicate schema. Missing values sort last in either direction; original universe position breaks equal-value ties. CSV quotes all cells and prefixes formula-like text while preserving numeric negatives. `screening-panel.js` keeps partial/error/canceled results visibly distinct from completed exports. Query templates use stable identities and portable workspace validation. No scan route connects to brokerage, notification delivery or external data fetching.
+
+## 4.3 renderer lifecycle
+
+`RendererDevicePool` deduplicates device acquisition and pipelines by format and
+sample count. Device loss invalidates only the corresponding acquisition and
+notifies a removable subscriber set. Charts never destroy a shared device when
+leaving a layout. Every renderer transition increments a generation: late device
+acquisition, pipeline compilation, error-scope completion and pixel readback
+cannot revive obsolete state. Timeout does not cancel a browser API promise, so
+late completions are fenced and locally owned allocations are released.
+
+Error-scope pushes and pops bracket synchronous command creation; no `await`
+occurs inside a scope pair on the shared device. Initialization is bounded, and
+uncaptured errors fall back to a retained independent Canvas frame. An explicit
+retry reacquires lost devices without resetting any financial or editor state.
+
+The 48-byte instance layout and draw ordering are unchanged. A bounded reusable
+CPU snapshot preserves accepted geometry even when Chart rebuilds its scratch
+array. Vertex buffers grow geometrically; one MSAA target is reused until size,
+format, device or quality changes. Regular frames perform no GPU readback.
+Optional captures use padded 256-byte rows, normalize BGRA to RGBA, wait for map
+completion, and always dispose staging resources. CPU submit timing is not GPU
+execution time.
+
+References: W3C WebGPU specification (device loss, error scopes, canvas
+configuration, texture copies and multisampling), https://www.w3.org/TR/webgpu/ .

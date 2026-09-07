@@ -96,3 +96,29 @@ MIT licensed. Provider names identify optional integrations, not affiliation or 
 **Pro tools → Actual trades** exposes diagonal or same-row imbalances, minimum classified volume, stacked consecutive rows and a volume value area. Missing rows remain unknown rather than zero-volume evidence. Retained script objects are rebuilt on the initial replay seek and on rewind, and stale worker completions cannot restore explicitly removed plots.
 
 **Shared event delivery** stores alert/message/workspace/room notifications in the same transaction as the source mutation. SQLite processes read the same bounded journal. EventSource reconnects use `Last-Event-ID`; expired history signals an explicit resync rather than pretending nothing was missed. See [ARCHITECTURE.md](ARCHITECTURE.md) for retention and delivery limits.
+
+## 4.3 renderer reliability and verification
+
+The primary chart Settings now expose Auto/WebGPU or Canvas, 1x/4x GPU
+antialiasing, an explicit WebGPU retry, downloadable diagnostics, and a six-case
+GPU pixel check. Diagnostics never contain account credentials or market data.
+The pixel check creates a separate temporary device and sends no external traffic.
+
+The renderer retains the last accepted geometry independently of the chart's
+mutable build buffer. Device loss immediately repaints that frame using Canvas.
+Switching backends does not recreate analysis workers or mutate drawings/prices.
+GPU devices and compiled pipelines are shared across charts; canvas targets and
+buffers are owned and released by each individual chart.
+
+Geometry is capped at 262,144 primitives per chart, with omissions reported.
+Backing stores (including the text overlay) are capped at 8,388,608 pixels and
+8,192 pixels per side; adapter limits can reduce GPU resolution further.
+Diagnostic pixel capture is limited to 4,194,304 pixels. Size limits reduce
+rendering resolution, never the underlying financial dataset.
+
+Run `node --test tests/v43-renderer.test.js` for isolated lifecycle/bounds tests.
+Run `python scripts/verify-browser-v43.py` with Playwright and Chromium installed
+for real WGSL, MSAA, texture readback and simulated device-loss checks using the
+explicitly selected SwiftShader software adapter. That suite fails, rather than
+claiming a Canvas fallback as GPU verification, if WebGPU is unavailable.
+Physical GPU throughput and driver-crash recovery are separate, unverified targets.

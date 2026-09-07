@@ -66,3 +66,16 @@ An exhaustive language/builtin catalogue, complete intrabar strategy recalculati
 ### Event replay limits (4.1)
 
 The journal retains at most 4,096 entries for 24 hours. It carries small invalidations or bounded alert payloads, not full private workspace snapshots. A new stream starts at the tail; automatic reconnection resumes an opaque epoch/sequence cursor. A stale, foreign, future or pruned cursor emits a resync instruction. Persistent consumers must refresh authoritative state after resync. Delivery is not exactly-once and this is not multi-host pub/sub. Five streams per user per process and bounded socket backpressure prevent unbounded per-client buffering.
+
+## 4.3 renderer update
+
+Implemented: bounded geometry/backing stores, shared device/pipeline lifetime,
+per-chart resource ownership, immutable last-frame fallback, explicit retry,
+1x/4x multisampling, and diagnostic RGBA readback with lifecycle fencing.
+Settings expose the backend, quality, diagnostics export and primitive pixel
+verification. These settings are primary-chart/session-local.
+
+The new verifier requires actual WebGPU with the SwiftShader software adapter;
+its pass/fail report is independent of the normal Canvas browser suite. A
+software-device result is not physical GPU performance certification. CPU
+mock-device unit tests are identified separately in TESTING.md.

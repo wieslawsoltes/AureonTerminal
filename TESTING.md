@@ -67,3 +67,24 @@ Hardware WebGPU shader/device execution or throughput; credentialed production r
 `verify-browser-v42.py` is chained after v4.1 by the normal browser CI entry point. Ten new groups exercise the studies catalogue, editor statistics, a two-worker scan, actual filter/sort forms, CSV download, saved query reload, immutable snapshots, independent cancellation, opening the exact captured dataset and mobile layout. HTTP mode requires real workers; `--document` explicitly models Worker unavailable and does not claim HTTP reload persistence or dedicated-worker success. It never relaxes application CSP or browser navigation policy. Evidence is under `verification/v4/statistics-screening/` (or `statistics-document/`).
 
 `npm run benchmark:statistics` reports one warm-up and median-of-three CPU timings over deterministic synthetic float64 prices, after checking results against independent reference loops/sorts. It controls neither GC nor CPU isolation, imposes no timing thresholds in CI, and establishes no GPU, browser, multi-client or feed-throughput guarantee.
+
+## 4.3 verification status
+
+The previous source transfer was incomplete. Eleven complete file edits were
+recovered with their before/after hashes. The renderer's truncated body was
+reimplemented and independently tested; the former 582-test claim does not
+certify this new tree.
+
+Local: 34 renderer tests cover geometry/DPR budgets, immutable fallback state,
+device/pipeline sharing, loss/retry, late completion, timeout, disposal, buffer
+reuse, capture limits, cancellation and staging cleanup. These use explicit test
+doubles, not a real GPU. All 549 inherited tests also pass (583 total).
+
+The local managed browser denies loopback navigation. Real-origin and actual
+WebGPU verification is therefore delegated to repository CI, not bypassed.
+`scripts/verify-browser-v43.py` requires SwiftShader and reports actual primitive
+readbacks, 4x coverage, DPI, device loss, resource reuse, settings and export.
+Results remain pending until a successful CI report is inspected.
+
+Unverified: physical GPU throughput, real driver crashes, every browser/driver,
+production providers and external brokerage/notification services.

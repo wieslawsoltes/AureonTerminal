@@ -129,4 +129,3 @@ if __name__=='__main__':
             raise SystemExit('GPU presentation verification requires a display. Run: xvfb-run -a python scripts/verify-browser-v43.py')
         os.execvp('xvfb-run',['xvfb-run','-a',sys.executable,str(Path(__file__).resolve()),*sys.argv[1:]])
     asyncio.run(main())
-

@@ -1,4 +1,4 @@
-# Aureon Terminal 4.2 — implementation inventory
+# Aureon Terminal 4.3 — implementation inventory
 
 Aureon is an independent implementation. This document describes executable source and its actual interfaces, not certification, ownership of market-data rights, or equivalence to another product. Unsupported syntax and unavailable datasets fail explicitly. Tests and operating limits are documented separately in `TESTING.md` and `SECURITY.md`.
 
@@ -6,7 +6,7 @@ Aureon is an independent implementation. This document describes executable sour
 
 | Capability | Implemented | Limits |
 |---|---|---|
-| Rendering | Native instanced WebGPU rectangles/segments; float64 financial calculations projected to local GPU pixels; independent Canvas renderer | Text is a Canvas overlay. Hardware GPU execution and throughput have not been verified in this environment. |
+| Rendering | Native instanced WebGPU rectangles/segments; float64 financial calculations projected to local GPU pixels; independent Canvas renderer | Text is a Canvas overlay. Actual WGSL execution, visible pixels and device-loss recovery are tested on SwiftShader; physical GPU execution and throughput remain unverified. |
 | Chart catalogue | 26 registered chart styles, 84 configurable study types, 66 drawing tools | Counts describe the actual registries, not an unlimited catalogue. Statistical warm-up gaps are preserved. |
 | Rolling distribution studies — new | AVL median/quantiles, centered-moment regression/correlation/variance and UTC bucket weighted deviation bands | O(log window) rolling updates; float64, not arbitrary precision. Strict gaps/warm-up; fixed UTC buckets are not exchange calendars. |
 | Observed-trade charts | Footprint, TPO, tick-count, volume and range views; configurable diagonal/same-row and stacked imbalances, deterministic POC/value area; aggressor/unknown classification and explicit provenance | Only supplied/received observations; no reconstruction of missing exchange prints. Older close-derived Renko/Kagi/P&F/line-break modes remain labeled approximations. |

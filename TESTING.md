@@ -2,6 +2,17 @@
 
 Verification distinguishes executable source, local tests, real-origin browser tests, and external services. Archived earlier evidence is not proof that a new commit passes; the current commit's Actions runs are authoritative.
 
+## Verified v4.3 CI snapshot
+
+Source snapshot: `d23b3b6316642ee813a811cd381518f2eb7a4e2a`.
+
+- [Source/test/build workflow](https://github.com/wieslawsoltes/AureonTerminal/actions/runs/34168027100): **591 tests passed**, independent reference guard and reproducible standalone build passed.
+- [Browser workflow](https://github.com/wieslawsoltes/AureonTerminal/actions/runs/34168027160): **71 groups passed** (31 + 11 + 8 + 10 inherited, plus 11 renderer groups), zero captured page JavaScript errors.
+- Artifact `aureon-v4-chromium-34168027160`, SHA256 `ac565b4b473658bd38cf99da79c9c637ef51944e0f8e67cb7a80fb7ab1d6f6b3`, was downloaded and all five JSON reports inspected. Renderer images include `workspace-webgpu.png` and `gpu-presentation.png`.
+- Actual WebGPU used Chromium 151.0.7922.34 with the SwiftShader fallback adapter, a headed window and Xvfb. The three screenshot pixels and six independent readback fixtures pass. Device destruction/reacquisition, two-chart isolation, 4x MSAA, high-DPI readback, resize, controls and export pass. This is real shader/API execution on a **software** device, not physical GPU throughput or full conformance certification.
+
+The application source and standalone distribution are unchanged by this evidence-only documentation update. Every subsequent PR head still runs the full suites; this immutable snapshot is not a substitute for its checks.
+
 ## Local checks
 
 - **591 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
@@ -84,7 +95,7 @@ The local managed browser denies loopback navigation. Real-origin and actual
 WebGPU verification is therefore delegated to repository CI, not bypassed.
 `scripts/verify-browser-v43.py` requires SwiftShader and reports actual primitive
 readbacks, 4x coverage, DPI, device loss, resource reuse, settings and export.
-Results remain pending until a successful CI report is inspected.
+The complete CI report for source snapshot `d23b3b6316642ee813a811cd381518f2eb7a4e2a` was downloaded, hash-verified and inspected: all 11 renderer groups pass. Later commits require their own passing checks.
 
 Unverified: physical GPU throughput, real driver crashes, every browser/driver,
 production providers and external brokerage/notification services.

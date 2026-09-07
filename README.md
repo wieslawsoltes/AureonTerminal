@@ -1,4 +1,4 @@
-# Aureon Terminal 4.2
+# Aureon Terminal 4.3
 
 Plain HTML/CSS/JavaScript market workbench with native WebGPU geometry and an independent Canvas fallback. The application includes 26 chart styles, 84 configurable studies, 66 drawing tools, editable 16-chart layouts, bounded scripting, causal pattern scans, financial models and opt-in private services.
 
@@ -53,7 +53,7 @@ The script editor supports bounded collections, typed records/methods, local ver
 
 Run the private server, sign in from each browser, and create a room with the intended members in **Pro tools → Collaboration**. Load the room, then explicitly join its drawing document. Edits merge per property; undo disables only the author's operation instead of overwriting another member's work. Same-symbol tile participation uses the existing opt-in drawing synchronization setting.
 
-Pending operations stay in tab session storage until acknowledged. Reloading and explicitly rejoining recovers them; **Flush and leave** refuses to discard failed writes. Closing the tab can clear that storage. Membership is checked server-side, including at commit time. Document capacity is bounded rather than silently truncating history.
+Pending operations are stored transactionally in IndexedDB until acknowledged. Explicitly rejoining recovers committed edits after reload or tab closure; **Flush and leave** refuses to discard failed writes. Browser eviction, clearing site data, or closing before transaction completion can still lose edits. Membership is checked server-side, including at commit time. Document capacity is bounded rather than silently truncating history.
 
 ## Static hosting versus private server
 

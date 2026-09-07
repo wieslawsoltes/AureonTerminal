@@ -1,4 +1,4 @@
-# Aureon Terminal 4.0 — architecture and invariants
+# Aureon Terminal 4.3 — architecture and invariants
 
 ## Application boundary
 
@@ -62,7 +62,7 @@ An empty SQLite database migrates validated JSON once. Afterward SQLite is autho
 
 Price and script/drawing polling acquire named leases with owner IDs and monotonic fence tokens. A final mutation rechecks ownership, token and expiry inside its state transaction, along with rule revision/deletion. Old owners cannot commit after takeover. Price crossing baselines persist even when no alert fires, so another process can compare the next observation without resetting the rule. Stale/equal-time observations are ignored.
 
-Lease timeout determines failover delay. Polling does not recover unknown missed ticks or historical crossings. Errors remain visible instead of becoming fabricated zero quotes. Private event streams are process-local; durable logs can be read from another process.
+Lease timeout determines failover delay. Polling does not recover unknown missed ticks or historical crossings. Errors remain visible instead of becoming fabricated zero quotes. Private event-stream sockets are process-local, but a transactionally committed event journal propagates authorized changes across same-host SQLite processes and supports bounded cursor replay.
 
 Notification outbox claims have unique attempt IDs. Completion/failure can update only the still-matching active claim, preventing stale workers from finalizing a newer attempt. Consent, operator-bound destinations and per-provider security checks remain intact. External side effects are at-least-once: a crash after provider acceptance but before local commit can cause a duplicate. No exactly-once delivery or recipient receipt guarantee is claimed.
 

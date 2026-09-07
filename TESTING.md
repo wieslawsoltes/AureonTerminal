@@ -4,7 +4,7 @@ Verification distinguishes executable source, local tests, real-origin browser t
 
 ## Local checks
 
-- **584 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
+- **591 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
 - Earlier v3/v4/v4.1 browser evidence is retained for history, not asserted as a new 4.2 result.
 - New v4.2 actual-origin browser results must be read from the current PR CI artifact; suite definitions are not passing evidence.
 - Source syntax checks, standalone generation and the current-file independent-product reference guard passed.
@@ -75,10 +75,10 @@ recovered with their before/after hashes. The renderer's truncated body was
 reimplemented and independently tested; the former 582-test claim does not
 certify this new tree.
 
-Local: 35 renderer tests cover geometry/DPR budgets, immutable fallback state,
+Local: 42 renderer tests cover geometry/DPR budgets, immutable fallback state,
 device/pipeline sharing, loss/retry, late completion, timeout, disposal, buffer
 reuse, capture limits, cancellation and staging cleanup. These use explicit test
-doubles, not a real GPU. All 549 inherited tests also pass (584 total).
+doubles, not a real GPU. All 549 inherited tests also pass (591 total).
 
 The local managed browser denies loopback navigation. Real-origin and actual
 WebGPU verification is therefore delegated to repository CI, not bypassed.
@@ -93,3 +93,12 @@ The initial real-device run caught a genuine WGSL compilation error: `meta`
 was used as a field name despite being reserved. The field and both references
 were renamed to `styleData`. The actual-device suite stays mandatory; passing
 unit-test doubles do not replace compilation/pixel verification.
+
+Observed Chromium adapter reacquisition can return null with an expired-instance
+warning. Each shared acquisition now performs at most three adapter attempts,
+with bounded 40/80 ms delays and disposal checks. Exhaustion stays on Canvas;
+validation errors are not retried and there is no background recovery loop.
+Adapter diagnostics include `GPUAdapterInfo.device` and the standardized fallback
+flag without treating empty descriptive labels as a failed renderer. Native and
+standalone release labels and offline cache identity are generated from the same
+package release value; persistent workspace schema versions remain unchanged.

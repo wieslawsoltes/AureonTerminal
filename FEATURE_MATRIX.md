@@ -79,3 +79,8 @@ The new verifier requires actual WebGPU with the SwiftShader software adapter;
 its pass/fail report is independent of the normal Canvas browser suite. A
 software-device result is not physical GPU performance certification. CPU
 mock-device unit tests are identified separately in TESTING.md.
+
+Renderer acquisition tolerates a transient null adapter with at most three
+requests per explicit initialization (40/80 ms backoff). Persistent failure stays
+on Canvas and requires user retry. Diagnostics retain the optional adapter device
+label and fallback flag; these labels are not performance or security evidence.

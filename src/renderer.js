@@ -75,7 +75,10 @@ function descriptor(module,format,samples){return{
 /** Device + pipelines are shared, but render targets/buffers have one owner.
  * A late loss/rejection only clears the exact acquisition it belongs to. */
 export class RendererDevicePool {
-  constructor(gpu=()=>globalThis.navigator?.gpu){this.gpu=gpu;this.pending=null;this.disposed=false;}
+  constructor(gpu=()=>globalThis.navigator?.gpu,{attempts=3,retryDelayMs=40}={}){
+    if(!Number.isInteger(attempts)||attempts<1||attempts>5||!Number.isInteger(retryDelayMs)||retryDelayMs<0||retryDelayMs>1000)throw new RangeError('Invalid adapter retry limits');
+    this.gpu=gpu;this.pending=null;this.disposed=false;this.attempts=attempts;this.retryDelayMs=retryDelayMs;
+  }
   destroy(){this.disposed=true;const pending=this.pending;this.pending=null;pending?.then(record=>release(record.device),()=>{});}
   acquire(){
     if(this.disposed)return Promise.reject(new Error('Device pool is disposed'));
@@ -83,12 +86,21 @@ export class RendererDevicePool {
     let pending;pending=(async()=>{
       const gpu=typeof this.gpu==='function'?this.gpu():this.gpu;
       if(!gpu)throw new Error('WebGPU unavailable on this origin/browser');
-      const adapter=await gpu.requestAdapter({powerPreference:'high-performance'});
-      if(!adapter)throw new Error('No WebGPU adapter');
+      // A browser may temporarily return null while its GPU instance is being
+      // recreated. Bound retries inside this acquisition; no background loop.
+      let adapter=null,attempt=0;
+      for(;attempt<this.attempts&&!adapter;attempt++){
+        if(this.disposed)throw new Error('Device pool is disposed');
+        if(attempt)await new Promise(resolve=>setTimeout(resolve,this.retryDelayMs*attempt));
+        if(this.disposed)throw new Error('Device pool is disposed');
+        adapter=await gpu.requestAdapter({powerPreference:'high-performance'});
+      }
+      if(this.disposed)throw new Error('Device pool is disposed');
+      if(!adapter)throw new Error('No WebGPU adapter after '+attempt+' bounded attempts');
       const device=await adapter.requestDevice();
       if(this.disposed){release(device);throw new Error('Device pool was disposed during acquisition');}
-      const info=adapter.info||device.adapterInfo||{};
-      const record={device,gpu,lost:false,listeners:new Set(),pipelines:new Map(),info:{vendor:String(info.vendor||''),architecture:String(info.architecture||''),description:String(info.description||''),fallback:adapter.isFallbackAdapter??null}};
+      const info=device.adapterInfo||adapter.info||{};
+      const record={device,gpu,lost:false,listeners:new Set(),pipelines:new Map(),info:{vendor:String(info.vendor||''),architecture:String(info.architecture||''),description:String(info.description||''),device:String(info.device||''),fallback:info.isFallbackAdapter??adapter.isFallbackAdapter??null,acquisitionAttempts:attempt}};
       device.lost.then(info=>{record.lost=true;if(this.pending===pending)this.pending=null;for(const callback of [...record.listeners])callback(info);record.listeners.clear();});return record;
     })();this.pending=pending;
     pending.catch(()=>{if(this.pending===pending)this.pending=null;});return pending;

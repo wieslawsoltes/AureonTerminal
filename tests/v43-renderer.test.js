@@ -168,3 +168,39 @@ test('WGSL instance attributes avoid the reserved metadata identifier',()=>{
   assert.doesNotMatch(GEOMETRY_WGSL,/\bmeta\b/);
   assert.match(GEOMETRY_WGSL,/@location\(2\) styleData:vec4f/);
 });
+
+
+test('transient null adapters retry within a shared bounded acquisition',async()=>{
+  const f=gpuFixture(),request=f.gpu.requestAdapter;let calls=0;
+  f.gpu.requestAdapter=async()=>++calls===1?null:request();
+  const pool=new RendererDevicePool(f.gpu,{retryDelayMs:0});
+  try{const a=pool.acquire(),b=pool.acquire();assert.strictEqual(a,b);const record=await a;assert.equal(calls,2);assert.equal(record.info.acquisitionAttempts,2);assert.equal(f.created.length,1);}finally{pool.destroy();f.pool.destroy();}
+});
+test('permanently unavailable adapters stop after the configured attempt limit',async()=>{
+  let calls=0;const pool=new RendererDevicePool({requestAdapter:async()=>{calls++;return null;}},{attempts:3,retryDelayMs:0});
+  try{await assert.rejects(pool.acquire(),/after 3 bounded attempts/);assert.equal(calls,3);assert.equal(pool.pending,null);}finally{pool.destroy();}
+});
+test('adapter rejections are not misclassified as transient null results',async()=>{
+  let calls=0;const pool=new RendererDevicePool({requestAdapter:async()=>{calls++;throw new TypeError('Invalid request');}},{retryDelayMs:0});
+  try{await assert.rejects(pool.acquire(),TypeError);assert.equal(calls,1);}finally{pool.destroy();}
+});
+test('disposing during adapter retry cannot request another device',async()=>{
+  const gate=defer();let calls=0;const pool=new RendererDevicePool({requestAdapter:async()=>{calls++;return gate.promise;}},{retryDelayMs:0});
+  const pending=pool.acquire();pool.destroy();gate.resolve(null);await assert.rejects(pending,/disposed/);assert.equal(calls,1);
+});
+test('retry controls have hard attempt and delay bounds',()=>{
+  for(const options of [{attempts:0},{attempts:6},{attempts:1.5},{retryDelayMs:-1},{retryDelayMs:1001},{retryDelayMs:NaN}])assert.throws(()=>new RendererDevicePool({},options),RangeError);
+});
+test('adapter diagnostics retain device name and the standardized fallback flag',async()=>{
+  const f=gpuFixture(),request=f.gpu.requestAdapter;
+  f.gpu.requestAdapter=async()=>{const a=await request(),create=a.requestDevice;a.requestDevice=async()=>{const d=await create();d.adapterInfo={vendor:'generic',device:'software device name',isFallbackAdapter:false};return d;};return a;};
+  try{const record=await f.pool.acquire();assert.equal(record.info.device,'software device name');assert.equal(record.info.fallback,false);assert.equal(record.info.vendor,'generic');}finally{f.pool.destroy();}
+});
+test('native label, standalone label and PWA cache share package release identity',async()=>{
+  const {readFile}=await import('node:fs/promises'),{PRODUCT_VERSION}=await import('../src/release.js');
+  const read=path=>readFile(new URL('../'+path,import.meta.url),'utf8'),pkg=JSON.parse(await read('package.json'));
+  assert.equal(PRODUCT_VERSION,pkg.version);
+  for(const path of ['index.html','dist/AureonTerminal.html'])assert((await read(path)).includes('<span class="version">v'+PRODUCT_VERSION+'</span>'));
+  assert((await read('sw.js')).includes("CACHE=PREFIX+'v"+PRODUCT_VERSION+"'"));
+  assert((await read('src/workbench.js')).includes("version.textContent='v'+PRODUCT_VERSION"));
+});

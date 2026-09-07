@@ -1,3 +1,4 @@
+import {PRODUCT_VERSION} from './release.js';
 import {rendererPixelCheck} from './renderer-health.js';
 import {Workbench} from './workbench.js';
 import {CHART_TYPES} from './chart-types.js';
@@ -27,7 +28,7 @@ class Application {
     this.clock=setInterval(()=>this.updateClock(),1000);this.updateClock();this.health=setInterval(()=>this.refreshHealth(),3000);this.autosave=setInterval(()=>this.save(false),20000);
     this.start();if(!this.forceDemo)this.market.connect(this.feedSymbols());else this.setFeedStatus({state:'demo',text:'Offline demo · synthetic data'});
     window.addEventListener('beforeunload',()=>this.save(false));
-    window.aureon={app:this,version:VERSION};this.workbench=new Workbench(this);window.aureon.workbench=this.workbench;
+    window.aureon={app:this,version:VERSION,releaseVersion:PRODUCT_VERSION};this.workbench=new Workbench(this);window.aureon.workbench=this.workbench;
   }
   async start(){
     const meta=read('aureon.import',null);

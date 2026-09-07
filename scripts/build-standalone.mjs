@@ -5,6 +5,14 @@
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {posix} from 'node:path';
 const root=new URL('../',import.meta.url),read=p=>readFile(new URL(p,root),'utf8');
+// Keep native/standalone labels and offline cache release identity in sync.
+const productVersion=JSON.parse(await read('package.json')).version;
+if(!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(productVersion))throw new Error('Invalid product release version');
+await writeFile(new URL('src/release.js',root),`// Generated from package.json by npm run build; not a workspace schema version.\nexport const PRODUCT_VERSION=${JSON.stringify(productVersion)};\n`);
+const shell=await read('index.html'),serviceWorker=await read('sw.js');
+if((shell.match(/<span class="version">[^<]*<\/span>/g)||[]).length!==1||!serviceWorker.includes("CACHE=PREFIX+"))throw new Error('Missing release identity marker');
+await writeFile(new URL('index.html',root),shell.replace(/<span class="version">[^<]*<\/span>/,`<span class="version">v${productVersion}</span>`));
+await writeFile(new URL('sw.js',root),serviceWorker.replace(/CACHE=PREFIX\+'[^']*'/,`CACHE=PREFIX+'v${productVersion}'`));
 const importPattern=/^import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"];?\s*/gm;
 async function graph(entry,seen=new Map()){
   if(seen.has(entry))return seen;const source=await read(entry);seen.set(entry,source);

@@ -1,0 +1,170 @@
+name: Recover and validate preserved renderer v4.3
+on:
+  push:
+    branches: [transfer/v4.3-resume-20260907]
+permissions:
+  contents: write
+concurrency:
+  group: recover-renderer-v43
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: 30947d2bd7c4e28cfe60f0bd8f73efb6816efae1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Recover the two previously uploaded source fragments
+        env:
+          RECOVERY_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import base64, hashlib, json, lzma, os, re, subprocess, urllib.request
+          from pathlib import Path, PurePosixPath
+          base = '30947d2bd7c4e28cfe60f0bd8f73efb6816efae1'
+          blobs = ['8f9cef27969659e467f745d31b7b75ff6d10ae15', '690c3bc8e905ab4a98562ab255ea717d03487096']
+          repo = os.environ['GITHUB_REPOSITORY']
+          if repo != 'wieslawsoltes/AureonTerminal':
+              raise RuntimeError('Unexpected repository')
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+          def digest(value):
+              return hashlib.sha256(value).hexdigest()
+          pieces = []
+          for sha in blobs:
+              req = urllib.request.Request(f'https://api.github.com/repos/{repo}/git/blobs/{sha}', headers={'Authorization': 'Bearer ' + os.environ['RECOVERY_TOKEN'], 'Accept': 'application/vnd.github+json', 'User-Agent': 'Aureon-source-recovery'})
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  body = response.read(1_000_001)
+              if len(body) > 1_000_000:
+                  raise RuntimeError('Blob response exceeds bound')
+              record = json.loads(body)
+              if record.get('encoding') != 'base64' or record.get('sha') != sha:
+                  raise RuntimeError('Unexpected blob encoding or identity')
+              raw = base64.b64decode(record['content'])
+              actual = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+              if actual != sha:
+                  raise RuntimeError('Git blob integrity mismatch')
+              pieces.append(raw.decode('ascii'))
+          archive = base64.b64decode(''.join(pieces), validate=True)
+          stream = lzma.LZMADecompressor(memlimit=256 * 1024 * 1024)
+          payload = stream.decompress(archive, max_length=4_000_001)
+          if not stream.eof or stream.unused_data or len(payload) > 4_000_000:
+              raise RuntimeError('Incomplete, oversized or trailing source archive; no source was changed')
+          data = json.loads(payload)
+          if data.get('base') not in [base, 'ffe820f5562a94301b1960272082bdc06b77c133']:
+              raise RuntimeError('Recovered source has an unexpected baseline')
+          if git('rev-parse', data['base'] + '^{tree}') != git('rev-parse', base + '^{tree}'):
+              raise RuntimeError('Baseline trees differ')
+          tree = data.get('tree', '')
+          distribution = data.get('distribution', '')
+          if not re.fullmatch(r'[0-9a-f]{40}', tree) or not re.fullmatch(r'[0-9a-f]{64}', distribution):
+              raise RuntimeError('Expected source tree and distribution digests are required')
+          files = data.get('files')
+          if not isinstance(files, list) or not 1 <= len(files) <= 256:
+              raise RuntimeError('Unexpected file inventory')
+          validated = []
+          seen = set()
+          for item in files:
+              name = item['path']
+              path = PurePosixPath(name)
+              if not name or path.is_absolute() or str(path) != name or '\\' in name or any(p in ('..', '.', '.git') for p in path.parts) or name in seen:
+                  raise RuntimeError('Unsafe or duplicate source path')
+              seen.add(name)
+              dest = Path(name)
+              if dest.is_symlink() or any(p.is_symlink() for p in dest.parents):
+                  raise RuntimeError('Symlink source path')
+              before = dest.read_bytes() if dest.exists() else b''
+              if digest(before) != item['before']:
+                  raise RuntimeError('Baseline hash mismatch: ' + name)
+              text = before.decode('utf-8')
+              cursor = 0
+              for start, end, replacement in item['edits']:
+                  if type(start) is not int or type(end) is not int or not cursor <= start <= end <= len(text) or not isinstance(replacement, str):
+                      raise RuntimeError('Invalid edit coordinates')
+                  cursor = end
+              for start, end, replacement in reversed(item['edits']):
+                  text = text[:start] + replacement + text[end:]
+              after = text.encode('utf-8')
+              if digest(after) != item['after']:
+                  raise RuntimeError('Reconstructed source hash mismatch: ' + name)
+              validated.append((dest, after))
+          for dest, after in validated:
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              dest.write_bytes(after)
+          subprocess.run(['npm', 'run', 'build'], check=True)
+          if digest(Path('dist/AureonTerminal.html').read_bytes()) != distribution:
+              raise RuntimeError('Generated distribution hash mismatch')
+          subprocess.run(['npm', 'run', 'references'], check=True)
+          subprocess.run(['npm', 'run', 'check'], check=True)
+          git('add', '--all')
+          if git('write-tree') != tree:
+              raise RuntimeError('Full reconstructed Git tree differs')
+          git('config', 'user.name', 'github-actions[bot]')
+          git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com')
+          git('commit', '-m', 'feat: resilient renderer lifecycle, bounded geometry and GPU diagnostics')
+          commit = git('rev-parse', 'HEAD')
+          report = {'base': base, 'commit': commit, 'tree': tree, 'distributionSha256': distribution, 'sourceArchiveSha256': digest(archive), 'files': len(files), 'sourceValidation': 'passed', 'gpuValidation': 'pending'}
+          Path(os.environ['RUNNER_TEMP'], 'renderer-recovery.json').write_text(json.dumps(report, indent=2))
+          git('archive', '--format=zip', '-o', str(Path(os.environ['RUNNER_TEMP'], 'aureon-v43-recovered-source.zip')), 'HEAD')
+          print(json.dumps(report, indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('Recovered exact renderer source commit `' + commit + '` with source/build/reference validation. GPU validation is separate.\n')
+          PY
+      - name: Publish only the isolated renderer feature branch
+        run: |
+          set -euo pipefail
+          current="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$current" = 30947d2bd7c4e28cfe60f0bd8f73efb6816efae1
+          target=refs/heads/feature/v4.3-renderer-recovery
+          existing="$(git ls-remote origin "$target" | cut -f1)"
+          if [ -n "$existing" ]; then
+            git fetch origin "$target"
+            test "$(git rev-parse FETCH_HEAD^{tree})" = "$(git rev-parse HEAD^{tree})"
+            echo 'Identical feature tree already exists; no reference was overwritten.'
+          else
+            git push origin HEAD:"$target"
+          fi
+      - name: Install test-only browser tooling
+        run: |
+          python -m pip install playwright==1.62.0
+          python -m playwright install --with-deps chromium
+          python - <<'PY'
+          import os
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              executable = p.chromium.executable_path
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write('CHROMIUM=' + executable + '\n')
+          PY
+      - name: Run inherited browser checks and preserved GPU verification
+        run: |
+          python scripts/verify-browser-v3.py
+          python scripts/verify-browser-v4.py
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          scripts = sorted(p for p in Path('scripts').iterdir() if p.is_file() and p.name.startswith('verify') and 'gpu' in p.name.lower() and p.suffix in ('.py', '.mjs'))
+          if not scripts:
+              raise RuntimeError('No preserved GPU verification entry point found; manual inspection is required before merging')
+          for script in scripts:
+              print('Running preserved verifier:', script, flush=True)
+              subprocess.run(['python' if script.suffix == '.py' else 'node', str(script)], check=True)
+          PY
+      - name: Preserve source identity and validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aureon-v43-recovery-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/renderer-recovery.json
+            ${{ runner.temp }}/aureon-v43-recovered-source.zip
+            verification/
+          retention-days: 14

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Geometry,rgba,renderDimensions,MAX_PRIMITIVES,MAX_RENDER_PIXELS,Renderer,RendererDevicePool} from '../src/renderer.js';
+import {GEOMETRY_WGSL,Geometry,rgba,renderDimensions,MAX_PRIMITIVES,MAX_RENDER_PIXELS,Renderer,RendererDevicePool} from '../src/renderer.js';
 
 globalThis.GPUBufferUsage={UNIFORM:64,COPY_DST:8,VERTEX:32,MAP_READ:1};
 globalThis.GPUTextureUsage={RENDER_ATTACHMENT:16,COPY_SRC:1};
@@ -160,4 +160,11 @@ test('Canvas diagnostic capture does not replace the retained display scene',asy
 });
 test('destroy is idempotent and rejects subsequent async control operations',async()=>{
   const f=gpuFixture(),{r}=renderer(f);await r.ready;r.render(sample(),color);const device=r.device,uniform=r.uniform,buffer=r.buffer;r.destroy();r.destroy();assert(uniform.destroyed&&buffer.destroyed);assert(!device.destroyed);assert.equal(r.lastScene,null);assert.equal(device.listeners.size,0);await assert.rejects(r.retry(),/destroyed/);await assert.rejects(r.setSamples(1),/destroyed/);await assert.rejects(r.capturePixels(sample(),color),/destroyed/);f.pool.destroy();
+});
+
+// This regression names the observed compiler error; actual shader compilation
+// and execution are required separately by the SwiftShader browser suite.
+test('WGSL instance attributes avoid the reserved metadata identifier',()=>{
+  assert.doesNotMatch(GEOMETRY_WGSL,/\bmeta\b/);
+  assert.match(GEOMETRY_WGSL,/@location\(2\) styleData:vec4f/);
 });

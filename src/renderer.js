@@ -5,14 +5,14 @@
 export const GEOMETRY_WGSL=`
 struct View { size: vec2f, pad: vec2f };
 @group(0) @binding(0) var<uniform> view: View;
-struct In { @location(0) bounds:vec4f, @location(1) color:vec4f, @location(2) meta:vec4f };
+struct In { @location(0) bounds:vec4f, @location(1) color:vec4f, @location(2) styleData:vec4f };
 struct Out { @builtin(position) position:vec4f, @location(0) color:vec4f };
 @vertex fn vs(input:In,@builtin(vertex_index) vi:u32)->Out {
   let corners=array<vec2f,6>(vec2f(0.,0.),vec2f(1.,0.),vec2f(0.,1.),vec2f(0.,1.),vec2f(1.,0.),vec2f(1.,1.));
   let uv=corners[vi];var p:vec2f;
-  if(input.meta.y<0.5){p=input.bounds.xy+uv*input.bounds.zw;}
+  if(input.styleData.y<0.5){p=input.bounds.xy+uv*input.bounds.zw;}
   else {let d=input.bounds.zw-input.bounds.xy;let len=max(length(d),0.0001);let normal=vec2f(-d.y,d.x)/len;
-    p=input.bounds.xy+uv.x*d+(uv.y-0.5)*input.meta.x*normal;}
+    p=input.bounds.xy+uv.x*d+(uv.y-0.5)*input.styleData.x*normal;}
   var out:Out;out.position=vec4f(p.x/view.size.x*2.-1.,1.-p.y/view.size.y*2.,0.,1.);out.color=input.color;return out;
 }
 @fragment fn fs(input:Out)->@location(0) vec4f {return input.color;}`;

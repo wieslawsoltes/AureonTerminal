@@ -1,10 +1,10 @@
-# Aureon Terminal v4.2 verification
+# Aureon Terminal v4.3 verification
 
 Verification distinguishes executable source, local tests, real-origin browser tests, and external services. Archived earlier evidence is not proof that a new commit passes; the current commit's Actions runs are authoritative.
 
 ## Local checks
 
-- **546 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
+- **584 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
 - Earlier v3/v4/v4.1 browser evidence is retained for history, not asserted as a new 4.2 result.
 - New v4.2 actual-origin browser results must be read from the current PR CI artifact; suite definitions are not passing evidence.
 - Source syntax checks, standalone generation and the current-file independent-product reference guard passed.
@@ -75,10 +75,10 @@ recovered with their before/after hashes. The renderer's truncated body was
 reimplemented and independently tested; the former 582-test claim does not
 certify this new tree.
 
-Local: 34 renderer tests cover geometry/DPR budgets, immutable fallback state,
+Local: 35 renderer tests cover geometry/DPR budgets, immutable fallback state,
 device/pipeline sharing, loss/retry, late completion, timeout, disposal, buffer
 reuse, capture limits, cancellation and staging cleanup. These use explicit test
-doubles, not a real GPU. All 549 inherited tests also pass (583 total).
+doubles, not a real GPU. All 549 inherited tests also pass (584 total).
 
 The local managed browser denies loopback navigation. Real-origin and actual
 WebGPU verification is therefore delegated to repository CI, not bypassed.
@@ -88,3 +88,8 @@ Results remain pending until a successful CI report is inspected.
 
 Unverified: physical GPU throughput, real driver crashes, every browser/driver,
 production providers and external brokerage/notification services.
+
+The initial real-device run caught a genuine WGSL compilation error: `meta`
+was used as a field name despite being reserved. The field and both references
+were renamed to `styleData`. The actual-device suite stays mandatory; passing
+unit-test doubles do not replace compilation/pixel verification.

@@ -122,3 +122,9 @@ for real WGSL, MSAA, texture readback and simulated device-loss checks using the
 explicitly selected SwiftShader software adapter. That suite fails, rather than
 claiming a Canvas fallback as GPU verification, if WebGPU is unavailable.
 Physical GPU throughput and driver-crash recovery are separate, unverified targets.
+
+The actual-device renderer verifier requires a graphical display. On a Linux test
+host, run `xvfb-run -a python scripts/verify-browser-v43.py` after installing the
+Playwright Chromium test dependencies. GitHub CI provisions this virtual display
+automatically. Its software-adapter flags belong only to the isolated deterministic
+test browser, not a recommended configuration for browsing untrusted sites.

@@ -2,7 +2,7 @@
 The software backend verifies actual WGSL/device execution, not hardware speed.
 Runs on a real loopback origin in CI; local administrator policies are not bypassed.
 """
-import asyncio,base64,json,os,socket,subprocess,tempfile,time
+import asyncio,base64,json,os,shutil,socket,subprocess,sys,tempfile,time
 from pathlib import Path
 from playwright.async_api import async_playwright
 ROOT=Path(__file__).resolve().parents[1]
@@ -18,7 +18,7 @@ async def main():
         process=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'127.0.0.1','PORT':str(port),'AUREON_DATA_DIR':private,'AUREON_MONITOR':'0'},stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         try:
             async with async_playwright() as p:
-                browser=await p.chromium.launch(executable_path=os.environ.get('CHROMIUM','/usr/bin/chromium'),headless=True,args=['--no-sandbox',*GPU_FLAGS]);version=browser.version
+                browser=await p.chromium.launch(executable_path=os.environ.get('CHROMIUM','/usr/bin/chromium'),headless=False,args=['--no-sandbox',*GPU_FLAGS]);version=browser.version
                 context=await browser.new_context(viewport={'width':1440,'height':960},accept_downloads=True)
                 await context.route('https://**/*',lambda route:route.abort())
                 page=await context.new_page();page.set_default_timeout(10000);page.on('pageerror',lambda e:errors.append(str(e)));page.on('console',lambda m:warnings.append(m.text) if m.type=='warning' and len(warnings)<100 else None)
@@ -54,6 +54,9 @@ async def main():
                           r.resize(64,64,1);const g=new Geometry();g.rect(4,4,24,24,rgba('#ff0000'));g.rect(36,36,20,20,rgba('#00ff00'));r.render(g,rgba('#000000'));
                           await r.device.queue.onSubmittedWorkDone();await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
                         }''')
+                        # Allow the virtual display compositor to present the one-shot frame.
+                        # No continuous redraw is used to manufacture screenshot content.
+                        await asyncio.sleep(1)
                         png=await page.locator('#gpu-presentation-fixture').screenshot()
                         (OUT/'gpu-presentation.png').write_bytes(png)
                         return await page.evaluate('''async png=>{
@@ -67,6 +70,7 @@ async def main():
                     finally:
                         await page.evaluate('()=>{const x=globalThis.rendererPresentationFixture;if(x){x.r.destroy();x.pool.destroy();x.canvas.remove();delete globalThis.rendererPresentationFixture;}}')
                 await check('Browser compositor presents actual WebGPU canvas pixels',presentation)
+                await page.screenshot(path=str(OUT/'workspace-webgpu.png'))
                 async def pixels():
                     return await page.evaluate('''async()=>{const{rendererPixelCheck}=await import('./src/renderer-health.js');const result=await rendererPixelCheck();if(!result.passed||result.mode!=='WebGPU'||result.tests.length!==6)throw Error(JSON.stringify(result));return result;}''')
                 await check('Six GPU readback fixtures verify opaque rectangles, alpha, line and clear pixels',pixels)
@@ -113,7 +117,16 @@ async def main():
             process.terminate()
             try:process.wait(timeout=5)
             except subprocess.TimeoutExpired:process.kill();process.wait()
-            report={'tests':tests,'passed':sum(t['passed'] for t in tests),'failed':sum(not t['passed'] for t in tests),'pageErrors':errors,'warnings':warnings,'origin':'HTTP loopback','renderer':'Actual WebGPU with forced SwiftShader, plus independent Canvas 2D comparison','adapter':adapter,'browserVersion':version,'gpuFlags':GPU_FLAGS,'notRun':['Physical GPU throughput/driver failure','Full WebGPU conformance suite','Production data and brokerage'],'externalServices':'None; deterministic local fixtures only'}
+            report={'tests':tests,'passed':sum(t['passed'] for t in tests),'failed':sum(not t['passed'] for t in tests),'pageErrors':errors,'warnings':warnings,'origin':'HTTP loopback','renderer':'Actual WebGPU with forced SwiftShader, plus independent Canvas 2D comparison','adapter':adapter,'browserVersion':version,'displayMode':'headed; virtual X11 in Linux CI','gpuFlags':GPU_FLAGS,'notRun':['Physical GPU throughput/driver failure','Full WebGPU conformance suite','Production data and brokerage'],'externalServices':'None; deterministic local fixtures only'}
             (OUT/'browser-report.json').write_text(json.dumps(report,indent=2));print(json.dumps({'passed':report['passed'],'failed':report['failed'],'pageErrors':errors}),flush=True)
         assert tests and not errors and all(t['passed'] for t in tests), 'Renderer browser checks failed'
-if __name__=='__main__':asyncio.run(main())
+if __name__=='__main__':
+    # Headless Chromium's SwiftShader swap-chain screenshot path was transparent
+    # even when readback and lifecycle tests passed. Real presentation is required;
+    # use the CI-provisioned virtual display, never weaken or skip pixel assertions.
+    if sys.platform.startswith('linux') and not os.environ.get('DISPLAY'):
+        if os.environ.get('GITHUB_ACTIONS')!='true' or not shutil.which('xvfb-run'):
+            raise SystemExit('GPU presentation verification requires a display. Run: xvfb-run -a python scripts/verify-browser-v43.py')
+        os.execvp('xvfb-run',['xvfb-run','-a',sys.executable,str(Path(__file__).resolve()),*sys.argv[1:]])
+    asyncio.run(main())
+

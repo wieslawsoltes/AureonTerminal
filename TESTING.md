@@ -5,11 +5,11 @@ Verification distinguishes executable source, local tests, real-origin browser t
 ## Local checks
 
 - **591 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
-- Earlier v3/v4/v4.1 browser evidence is retained for history, not asserted as a new 4.2 result.
-- New v4.2 actual-origin browser results must be read from the current PR CI artifact; suite definitions are not passing evidence.
+- Earlier v3/v4/v4.1 browser evidence is retained for history, not asserted as a new 4.3 result.
+- New actual-origin browser results must be read from the current PR CI artifact; suite definitions are not passing evidence.
 - Source syntax checks, standalone generation and the current-file independent-product reference guard passed.
 
-The managed local Chromium policy blocks loopback navigation. Local browser results therefore do not establish authenticated collaboration, real browser worker transport, or service-worker installation. Node HTTP/worker tests run independently. The CI browser workflow runs both suites on a real permitted HTTP origin: 31 inherited groups and 11 v4 groups, including authenticated two-browser collaboration and pending-queue recovery. Consult that workflow's report for the actual outcome rather than treating the suite definition as a passing result.
+The managed local Chromium policy blocks loopback navigation. Local browser results therefore do not establish authenticated collaboration, real browser worker transport, or service-worker installation. Node HTTP/worker tests run independently. The CI browser workflow runs the inherited suites on a permitted HTTP origin (31 v3, 11 v4, 8 v4.1 and 10 v4.2 groups), followed by 11 actual-device renderer groups. These include authenticated two-browser collaboration and pending-queue recovery. Consult that workflow's report for the actual outcome rather than treating the suite definition as a passing result.
 
 ## New regression coverage
 
@@ -112,3 +112,15 @@ combination (ANGLE SwiftShader, Vulkan SwiftShader and disabled Vulkan surfaces)
 It additionally decodes a browser-compositor screenshot and checks exact visible
 WebGPU canvas pixels, independently of offscreen readback. Application code and
 all lifecycle/pixel assertions remain unchanged by this host correction.
+
+The corrected compositor configuration passes every device/readback/loss test in
+headless mode, but that host's actual WebGPU screenshot remained transparent.
+A controlled matrix confirmed that a **headed Chromium window under Xvfb** also
+passes the unchanged visible-pixel assertion after a one-shot render (no render
+loop). The mandatory renderer suite therefore uses that display configuration;
+Linux CI re-enters through the already-installed `xvfb-run` when DISPLAY is absent.
+Other local environments require an explicit display and retain browser policies.
+The verification report identifies this headed software-device test environment.
+Native screenshots, six readback fixtures and device lifecycle tests all remain
+mandatory. This is not a claim that headless presentation or physical GPUs have
+been validated on every browser. The final PR CI run remains the release evidence.

@@ -75,7 +75,8 @@ per-chart resource ownership, immutable last-frame fallback, explicit retry,
 Settings expose the backend, quality, diagnostics export and primitive pixel
 verification. These settings are primary-chart/session-local.
 
-The new verifier requires actual WebGPU with the SwiftShader software adapter;
+The new verifier requires actual WebGPU with the SwiftShader software adapter
+in a headed Chromium window (Xvfb in Linux CI), including visible screenshot pixels;
 its pass/fail report is independent of the normal Canvas browser suite. A
 software-device result is not physical GPU performance certification. CPU
 mock-device unit tests are identified separately in TESTING.md.

@@ -1,0 +1,26 @@
+name: Export recovered v4 source for review
+on:
+  push:
+    branches: [transfer/v4-final]
+    paths: [.github/workflows/recover-review-source.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4eaf506e01cd75043ed3a4f2b36b3434e853dc00
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Export exact source and history without credentials
+        run: |
+          git bundle create "$RUNNER_TEMP/aureon-v4.bundle" HEAD
+          git bundle verify "$RUNNER_TEMP/aureon-v4.bundle"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aureon-v4-source-bundle
+          path: ${{ runner.temp }}/aureon-v4.bundle
+          retention-days: 3

@@ -1,3 +1,4 @@
+import {runScript} from './script.js';
 import {SimulationBroker,strategyStatistics} from './execution.js';
 import {validateCandle,uid} from './core.js';
 import {validateTrades} from './tick-charts.js';
@@ -62,10 +63,11 @@ export class MultiCurrencyCash {
 export function optionSettlement({right,strike,multiplier=100,quantity,style='cash',expiry,time,spot,underlyingShares=0,cash=0}){if(!['call','put'].includes(right)||!['cash','physical'].includes(style)||!Number.isFinite(quantity)||!quantity||!Number.isFinite(time)||time<expiry||!Number.isFinite(expiry)||![cash,underlyingShares].every(Number.isFinite))throw new Error('Invalid option settlement');positive(strike,'Strike');positive(multiplier,'Multiplier');positive(spot,'Observed settlement spot');const intrinsic=Math.max(0,(right==='call'?1:-1)*(spot-strike)),units=quantity*multiplier;if(!intrinsic)return{cash,underlyingShares,optionQuantity:0,cashFlow:0,sharesChange:0,exercised:false};const sharesChange=style==='physical'?(right==='call'?1:-1)*units:0,cashFlow=style==='cash'?intrinsic*units:-sharesChange*strike;return{cash:cash+cashFlow,underlyingShares:underlyingShares+sharesChange,optionQuantity:0,cashFlow,sharesChange,exercised:true};}
 /** Confirmed-close strategy commands execute on the next source bar. Magnifier
  * mode requires supplied trade aggregates to reconcile every OHLCV bar. */
-export function runPortfolioBacktest(bars,{commands=[],ticks=null,initial=100000,feeBps=10,slippageBps=5,allocation=.9,maxLeverage=1,pyramiding=1,stopPct=0,takePct=0,allowShort=true,start=0,end=bars.length}={}){
+function* portfolioSteps(bars,{commands=[],ticks=null,initial=100000,feeBps=10,slippageBps=5,allocation=.9,maxLeverage=1,pyramiding=1,stopPct=0,takePct=0,allowShort=true,start=0,end=bars.length}={}){
   if(!bars.length||!Number.isInteger(start)||!Number.isInteger(end)||start<0||end>bars.length||end<=start||!Number.isFinite(allocation)||allocation<=0||allocation>1||!Number.isFinite(stopPct)||stopPct<0||stopPct>=100||!Number.isFinite(takePct)||takePct<0||takePct>10000)throw new Error('Invalid strategy window/risk');let previous=-Infinity;for(const b of bars){validateCandle(b);if(b.synthetic||b.t<=previous)throw new Error('Execution requires ascending raw OHLCV');previous=b.t;}
   const trades=ticks?validateTrades(ticks):null,broker=new PortfolioBroker({initial,feeBps,slippageBps,maxLeverage,pyramiding,maintenance:Math.min(.2,.5/maxLeverage)}),symbol='BACKTEST',byIndex=new Map(),equity=[],markers=[];let cursor=0;
   for(const command of commands){if(!Number.isInteger(command.index)||command.index<0||command.index>=bars.length)throw new Error('Invalid command index');if(!byIndex.has(command.index))byIndex.set(command.index,[]);byIndex.get(command.index).push(command);}
+  let feedbackFill=0,feedbackClosed=0,feedbackWins=0,feedbackLosses=0;
   for(let i=start;i<end;i++){const bar=bars[i];if(bar.partial)break;const next=bars[i+1]?.t??bar.t+(i?bar.t-bars[i-1].t:60),events=[];
     if(trades){while(cursor<trades.length&&trades[cursor].t<bar.t)cursor++;while(cursor<trades.length&&trades[cursor].t<next)events.push(trades[cursor++]);if(!events.length)throw new Error('Bar magnifier has a trade-data gap');const prices=events.map(t=>t.price),volume=events.reduce((s,t)=>s+t.size,0),expected=[bar.o,bar.h,bar.l,bar.c,bar.v],actual=[prices[0],prices.reduce((a,b)=>Math.max(a,b),-Infinity),prices.reduce((a,b)=>Math.min(a,b),Infinity),prices.at(-1),volume];if(actual.some((x,j)=>Math.abs(x-expected[j])>1e-7*Math.max(1,Math.abs(expected[j]))))throw new Error('Actual trade data does not reconcile raw OHLCV; magnifier refused');}
     const first=events[0]||{t:bar.t,price:bar.o},tick=(event)=>broker.tick({symbol,time:event.t,price:event.price,liquidity:trades?event.size:Infinity});
@@ -84,6 +86,35 @@ export function runPortfolioBacktest(bars,{commands=[],ticks=null,initial=100000
     broker.tick({symbol,time:first.t,price:first.price,liquidity:trades?Math.max(0,first.size-consumed):Infinity});
     if(trades){for(const event of events.slice(1))tick(event);}else{const direction=Math.sign(broker.positions[symbol]?.quantity||1),dt=(next-bar.t)/4;for(const [j,price]of[direction>0?bar.l:bar.h,direction>0?bar.h:bar.l,bar.c].entries())tick({t:bar.t+(j+1)*dt,price});}
     equity.push({t:bar.t,value:broker.equity()});
+    const position=broker.positions[symbol];
+    for(;feedbackFill<broker.fills.length;feedbackFill++){const f=broker.fills[feedbackFill];if(f.closedQuantity>0){feedbackClosed++;if(f.realized>0)feedbackWins++;if(f.realized<0)feedbackLosses++;}}
+    const feedback={index:i,position_size:position?.quantity||0,position_avg_price:position?.average||NaN,equity:broker.equity(),initial_capital:initial,
+      netprofit:broker.realized,openprofit:broker.equity()-initial-broker.realized,opentrades:broker.lots.length,
+      closedtrades:feedbackClosed,wintrades:feedbackWins,losstrades:feedbackLosses};
+    const injected=yield feedback;
+    if(injected!==undefined){if(!Array.isArray(injected)||injected.length>1000||injected.some(c=>c.index!==i))throw new Error('Invalid per-bar strategy command batch');byIndex.set(i,injected);}
+
   }
   const closed=broker.fills.filter(f=>f.closedQuantity>0).map(f=>({t:f.entryTime,exitTime:f.time,price:f.entryPrice,exitPrice:f.price,quantity:f.closedQuantity,pnl:f.realized,side:f.entrySide,entryId:f.targetEntry}));for(const fill of broker.fills)markers.push({t:fill.time,p:fill.price,side:fill.side});return{...strategyStatistics(equity,closed,initial,broker.totalFees),equity,trades:closed,markers,orders:broker.orders,lots:broker.lots,account:broker.snapshot(),assumptions:{intrabar:trades?'Supplied actual prints; raw OHLCV reconciliation required':'OHLC adverse-first approximation; no fabricated tick history',reservation:'Pending gross notional plus fee and buffer; not exchange margin',matching:'Netted positions; FIFO or target entry ID; finite shared print size in magnifier mode'}};
+}
+
+/** Sequential simulation without reparsing or replaying every history prefix. */
+export function runPortfolioBacktest(bars,options={}) {
+  const steps=portfolioSteps(bars,options);let result=steps.next();
+  while(!result.done)result=steps.next();return result.value;
+}
+/** Executes market observations first, then evaluates the close-based script.
+ * The script sees only the account state established by that bar. Its new orders
+ * enter the simulator at the next raw-bar open, never at the signal close.
+ */
+export function runScriptPortfolioBacktest(bars,source,options={}) {
+  const start=options.start??0,end=options.end??bars.length,steps=portfolioSteps(bars,{...options,commands:[]});
+  let pending,step,last;
+  const neutral={position_size:0,position_avg_price:NaN,equity:options.initial??100000,initial_capital:options.initial??100000,netprofit:0,openprofit:0,opentrades:0,closedtrades:0,wintrades:0,losstrades:0};
+  const script=runScript(source,bars.slice(0,end),{...options,
+    beforeBar(index){if(index<start)return neutral;step=steps.next(pending);pending=undefined;if(!step.done){if(step.value.index!==index)throw new Error('Simulation clock mismatch');last=step.value;}return last||neutral;},
+    afterBar(index,commands){if(index>=start)pending=commands;}
+  });
+  if(!step)step=steps.next();if(!step.done)step=steps.next(pending);
+  if(!step.done)throw new Error('Simulation was not fully consumed');return {...step.value,script,assumptions:{...step.value.assumptions,feedback:'Closed-bar account state; linear single-pass evaluation; next-open orders'}};
 }

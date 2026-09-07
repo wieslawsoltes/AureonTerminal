@@ -41,11 +41,15 @@ jobs:
       - name: Build the checked-in application
         run: npm run build
       - name: Exercise real HTTP origin and browser workers
-        run: python scripts/verify-browser-v3.py
+        run: |
+          python scripts/verify-browser-v3.py
+          python scripts/verify-browser-v4.py
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aureon-v3-chromium-${{ github.run_id }}
-          path: verification/v3/
+          name: aureon-v4-chromium-${{ github.run_id }}
+          path: |
+            verification/v3/
+            verification/v4/
           retention-days: 14

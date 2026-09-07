@@ -1,3 +1,11 @@
+# 4.0.0
+
+- Establish independent product language throughout current tracked source, documentation and generated distribution; preserve licenses and history. Add a source reference guard to CI.
+- Add operation-set drawing rooms, account-bound authorship, selective undo, concurrent per-property merging, pending-tab recovery and explicit flush/leave.
+- Add native same-host SQLite WAL persistence, shared rate buckets, leased/fenced monitor handoff and durable crossing baselines; harden outbox attempt fencing and vault initialization; back up committed logical SQLite state.
+- Add retained script lines/boxes/labels/tables, named arguments, nested bounded libraries and fill-aware confirmed-bar strategy feedback, connected to editor/chart/tester.
+- Extend numerical, multi-process, authorization and browser regression coverage; document capacity, provider and hosting boundaries.
+
 # Changelog
 
 ## 3.0.0 — proposed upgrade

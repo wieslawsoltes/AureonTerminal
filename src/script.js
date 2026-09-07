@@ -1,3 +1,4 @@
+import {ScriptGraphics,GRAPHIC_CONSTANTS} from './script-graphics.js';
 import {ScriptHeap,UNHANDLED_COLLECTION} from './script-collections.js';
 import {computeStudies,supertrend} from './studies.js';
 /** AureonScript: original, bounded financial-series interpreter. Never eval/Function.
@@ -77,7 +78,7 @@ export function compileScript(source,options={}){
       if(fun){const parameters=fun[4].split(',').map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.match(/^(?:([A-Za-z_]\w*)\s+)?([A-Za-z_]\w*)$/);if(!m)throw new ScriptError('Expected typed or untyped parameter',l.line);return {type:m[1],name:m[2]};});let body=fun[5]?expression(fun[5],l.line):null;if(!body){if(!lines[cursor]||lines[cursor].indent<=indent)throw new ScriptError('Expected function body',l.line);body=block(lines[cursor].indent);}statements.push({type:'function',name:fun[3],params:parameters.map(p=>p.name),parameters,method:!!fun[2],exported:!!fun[1],body,line:l.line});continue;}
       const tuple=l.text.match(/^\[([^\]]+)\]\s*=\s*(.+)$/);
       if(tuple){const names=tuple[1].split(',').map(x=>x.trim());if(names.some(n=>!/^\w+$/.test(n)||forbidden.has(n))||new Set(names.filter(n=>n!=='_')).size!==names.filter(n=>n!=='_').length)throw new ScriptError('Invalid tuple names',l.line);statements.push({type:'tupleAssign',names,value:expression(tuple[2],l.line),line:l.line});continue;}
-      const assign=l.text.match(/^(?:(varip|var)\s+)?(?:(?:float|int|bool|string|color|(?:array|map|matrix)<[^>]+>|[A-Z]\w*)\s+)?([A-Za-z_][\w.]*)\s*(:=|\+=|-=|\*=|\/=|=(?!=))\s*(.+)$/);
+      const assign=l.text.match(/^(?:(varip|var)\s+)?(?:(?:float|int|bool|string|color|line|box|label|table|(?:array|map|matrix)<[^>]+>|[A-Z]\w*)\s+)?([A-Za-z_][\w.]*)\s*(:=|\+=|-=|\*=|\/=|=(?!=))\s*(.+)$/);
       if(assign){if(assign[2].split('.').some(x=>forbidden.has(x)))throw new ScriptError('Forbidden variable',l.line);statements.push({type:'assign',persistent:!!assign[1],intrabar:assign[1]==='varip',name:assign[2],op:assign[3],value:expression(assign[4],l.line),line:l.line});}
       else statements.push({type:'expression',value:expression(l.text,l.line),line:l.line});
     }return statements;
@@ -98,13 +99,24 @@ export function compileScript(source,options={}){
     for(const value of Object.values(node))if(value&&typeof value==='object')audit(value,scope);
   }
   audit(ast);
-  const imports=ast.filter(n=>n.type==='import');let nodes=nextNode,linked=[];
-  for(const imp of imports){const entry=options.libraries?.[imp.library];if(!entry||typeof entry.source!=='string')throw new ScriptError('Local versioned library required: '+imp.library,imp.line);if(/^[ ]*import\s/m.test(entry.source))throw new ScriptError('Nested library imports are not supported',imp.line);const library=compileScript(entry.source);const functions=library.ast.filter(n=>n.type==='function');if(library.ast.some(n=>n.type!=='function'&&!(n.type==='expression'&&n.value.type==='call'&&n.value.name==='library')))throw new ScriptError('Libraries may contain only exported pure/series functions',imp.line);if(functions.some(f=>!f.exported))throw new ScriptError('Library functions require export declarations',imp.line);const names=new Set(functions.map(f=>f.name));const rewrite=n=>{if(!n||typeof n!=='object')return;if(Array.isArray(n)){n.forEach(rewrite);return;}if(n.id)n.id=++nodes;if((n.type==='call'||n.type==='function')&&names.has(n.name))n.name=imp.alias+'.'+n.name;for(const value of Object.values(n))if(value&&typeof value==='object')rewrite(value);};const copied=structuredClone(functions);rewrite(copied);linked.push(...copied);}
+  const imports=ast.filter(n=>n.type==='import');if(new Set(imports.map(x=>x.alias)).size!==imports.length)throw new ScriptError('Duplicate library alias');let nodes=nextNode,linked=[];
+  for(const imp of imports){const entry=options.libraries?.[imp.library];if(!entry||typeof entry.source!=='string')throw new ScriptError('Local versioned library required: '+imp.library,imp.line);const stack=options.libraryStack||[];if(stack.includes(imp.library))throw new ScriptError('Cyclic versioned library import: '+imp.library,imp.line);if(stack.length>=8)throw new ScriptError('Library nesting limit is eight',imp.line);const library=compileScript(entry.source,{...options,libraryStack:[...stack,imp.library]});const functions=library.ast.filter(n=>n.type==='function');if(library.ast.some(n=>n.type!=='function'&&!(n.type==='expression'&&n.value.type==='call'&&n.value.name==='library')))throw new ScriptError('Libraries may contain only exported pure/series functions',imp.line);if(functions.some(f=>!f.exported))throw new ScriptError('Library functions require export declarations',imp.line);const names=new Set(functions.map(f=>f.name));const rewrite=n=>{if(!n||typeof n!=='object')return;if(Array.isArray(n)){n.forEach(rewrite);return;}if(n.id)n.id=++nodes;if((n.type==='call'||n.type==='function')&&names.has(n.name))n.name=imp.alias+'.'+n.name;for(const value of Object.values(n))if(value&&typeof value==='object')rewrite(value);};const copied=structuredClone(functions);rewrite(copied);linked.push(...copied);}
   if(nodes>5000)throw new ScriptError('Linked AST limit exceeded');return{ast:[...linked,...ast.filter(n=>n.type!=='import')],nodes,source};
 }
 const colors={blue:'#578bfa',red:'#ef6470',green:'#25bd9c',orange:'#efb466',purple:'#b698ed',yellow:'#ead074',white:'#ffffff',black:'#101419',aqua:'#61c7ca',teal:'#25bd9c',gray:'#8792a2',lime:'#78cf84',fuchsia:'#e281b4',maroon:'#a44865',silver:'#c0c5ce',navy:'#34558c',olive:'#8b965b'};
 const baseFields={open:'o',high:'h',low:'l',close:'c',volume:'v'};
 export function timeframeSeconds(text){const s=String(text);const m=s.match(/^(\d+)?([SDWM])?$/);if(!m)throw new ScriptError('Supported timeframes: minutes, nS, nD, nW');if(m[2]==='M')throw new ScriptError('Calendar-month security requests require an explicit calendar provider');const n=Number(m[1]||1);const v=n*({S:1,D:86400,W:604800}[m[2]]||60);if(!(v>0&&v<=31536000))throw new ScriptError('Invalid timeframe');return v;}
+function technicalSignature(name){
+  const key=name.startsWith('ta.')?name.slice(3):null;
+  if(['sma','ema','rma','wma','rsi','highest','lowest','stdev','sum','change','roc','mom','cci','mfi'].includes(key))return ['source','length'];
+  if(['crossover','crossunder','cross'].includes(key))return ['source1','source2'];
+  if(key==='linreg')return ['source','length'];
+  if(key==='valuewhen')return ['condition','source','occurrence'];
+  if(key==='barssince')return ['condition'];if(key==='cum')return ['source'];if(key==='atr')return ['length'];
+  if(key==='bb')return ['series','length','mult'];if(key==='macd')return ['source','fastlen','slowlen','siglen'];
+  if(key==='dmi')return ['diLength','adxSmoothing'];if(key==='supertrend')return ['factor','atrPeriod'];if(key==='sar')return ['start','inc','max'];
+  return null;
+}
 export function runScript(source,bars,options={}){
   const program=typeof source==='string'?compileScript(source,options):source;
   if(!Array.isArray(bars)||bars.length>250000)throw new ScriptError('Maximum 250,000 source bars');
@@ -112,9 +124,10 @@ export function runScript(source,bars,options={}){
   let operations=0;const maxOperations=options.maxOperations??20000000,maxHistory=10000;
   const vars=new Map(),persistent=new Set(),intrabar=new Set(),initialized=new Set(),functions=new Map(),types=new Map(),states=new Map(),plots=new Map(),alerts=new Map(),commands=[],inputs=new Map(),fills=[],backgrounds=[];
   const meta={title:'Untitled script',overlay:false,kind:'indicator'};let current=0,depth=0;
-  const profile=new Map();
+  const profile=new Map(),brokerSeries=[];
   function budget(node){if(node?.line)profile.set(node.line,(profile.get(node.line)||0)+1);if(++operations>maxOperations)throw new ScriptError('Operation budget exceeded',node?.line);if(depth>64)throw new ScriptError('Call depth exceeded',node?.line);}
   const heap=new ScriptHeap({maxElements:options.maxCollectionElements??1000000,budget:()=>budget()});
+  const graphics=new ScriptGraphics({maxObjects:options.maxGraphicObjects??500,budget:()=>budget()});
   const boundedString=v=>{const text=String(v);if(text.length>100000)throw new ScriptError('String length budget exceeded');return text;};
   const realtimeState=i=>options.realtimeStates?.[bars[i].t]||(i===bars.length-1&&options.realtime?{realtime:true,isNew:options.isNew!==false}:null);
   const intrabarSeeds=i=>options.varipSeedByTime?.[bars[i].t]||(i===bars.length-1?options.varipSeeds:null)||{};
@@ -127,14 +140,16 @@ export function runScript(source,bars,options={}){
       case'literal':return node.value;
       case'tuple':return node.items.map(x=>value(x,i,locals));
       case'name':{
-        const name=node.name;if(locals.__series?.has(name)){const binding=locals.__series.get(name);return value(binding.node,i,binding.locals);}if(Object.hasOwn(locals,name))return locals[name];if(locals.__scope&&vars.has(locals.__scope+':'+name))return vars.get(locals.__scope+':'+name)[i];if(name==='true')return true;if(name==='false')return false;if(name==='na')return NaN;
+        const name=node.name;if(locals.__series?.has(name)){const binding=locals.__series.get(name);if(!binding.cache.has(i))binding.cache.set(i,value(binding.node,i,binding.locals));return binding.cache.get(i);}if(Object.hasOwn(locals,name))return locals[name];if(locals.__scope&&vars.has(locals.__scope+':'+name))return vars.get(locals.__scope+':'+name)[i];if(name==='true')return true;if(name==='false')return false;if(name==='na')return NaN;
         if(Object.hasOwn(baseFields,name))return bars[i][baseFields[name]];
         if(name==='hl2')return(bars[i].h+bars[i].l)/2;if(name==='hlc3')return(bars[i].h+bars[i].l+bars[i].c)/3;if(name==='ohlc4')return(bars[i].o+bars[i].h+bars[i].l+bars[i].c)/4;
         if(name==='time')return bars[i].t*1000;if(name==='bar_index')return i;if(name==='barstate.isconfirmed')return !bars[i].partial;if(name==='barstate.isfirst')return i===0;if(name==='barstate.islast')return i===bars.length-1;
         if(name==='syminfo.tickerid'||name==='syminfo.ticker')return options.symbol||'CHART';if(name==='syminfo.mintick')return options.tickSize||.01;if(name==='timeframe.period')return String((options.interval||3600)/60);
         if(name==='barstate.isrealtime')return !!realtimeState(i)?.realtime;if(name==='barstate.ishistory')return !realtimeState(i)?.realtime;if(name==='barstate.isnew')return realtimeState(i)?.isNew!==false;
+        if(Object.hasOwn(GRAPHIC_CONSTANTS,name))return GRAPHIC_CONSTANTS[name];if(name==='yloc.price')return 'price';
         if(name==='order.ascending')return 'ascending';if(name==='order.descending')return 'descending';
         if(name==='strategy.long')return 1;if(name==='strategy.short')return -1;
+        if(name.startsWith('strategy.')&&['position_size','position_avg_price','equity','initial_capital','netprofit','openprofit','opentrades','closedtrades','wintrades','losstrades'].includes(name.slice(9)))return brokerSeries[i]?.[name.slice(9)]??(name==='strategy.position_avg_price'?NaN:['strategy.equity','strategy.initial_capital'].includes(name)?options.initial??100000:0);
         if(name.startsWith('color.')&&Object.hasOwn(colors,name.slice(6)))return colors[name.slice(6)];
         if(['plot.style_line','plot.style_histogram','plot.style_columns','plot.style_circles','shape.triangleup','shape.triangledown','shape.circle','location.abovebar','location.belowbar'].includes(name))return name;
         if(vars.has(name))return vars.get(name)[i];
@@ -153,14 +168,33 @@ export function runScript(source,bars,options={}){
     fail(node,'Unsupported expression');
   }
   function call(node,i,locals){
+    const signature=technicalSignature(node.name);
+    if(signature&&Object.keys(node.named).length){
+      const args=[...node.args];if(args.length>signature.length)fail(node,'Too many function arguments');
+      for(const[key,ast]of Object.entries(node.named)){const at=signature.indexOf(key);if(at<0||args[at])fail(node,'Unknown or duplicated '+node.name+' argument '+key);args[at]=ast;}
+      node={...node,args,named:{}};
+    }
     const name=node.name,arg=k=>node.args[k]?value(node.args[k],i,locals):undefined;
     const named=(k,def)=>node.named[k]?value(node.named[k],i,locals):def;
     const supported=(allowed)=>{for(const k of Object.keys(node.named))if(!allowed.includes(k))fail(node,'Unsupported '+name+' argument: '+k);};
+    if(/^(line|box|label|table)\./.test(name)){if(i!==current)fail(node,'Graphic calls cannot re-execute on a past bar; retain a handle in a variable');return graphics.call(name,node.args.map(x=>value(x,i,locals)),Object.fromEntries(Object.entries(node.named).map(([k,x])=>[k,value(x,i,locals)])),i);}
     const builtin=()=>heap.call(name,node.args.map(x=>value(x,i,locals)),node.generics||[]);
-    if(/^(array|map|matrix)\./.test(name))return builtin();
+    if(/^(array|map|matrix)\./.test(name)){supported([]);return builtin();}
     let functionName=name,methodObject=null;
     if(!functions.has(name)&&name.includes('.')){const dot=name.lastIndexOf('.'),root=name.slice(0,dot),method=name.slice(dot+1);if(vars.has(root)||locals.__series?.has(root)||Object.hasOwn(locals,root)||locals.__scope&&vars.has(locals.__scope+':'+root)){methodObject=value({type:'name',name:root,line:node.line},i,locals);if(['array','map','matrix'].includes(methodObject?.kind))return heap.call(methodObject.kind+'.'+method,[methodObject,...node.args.map(x=>value(x,i,locals))]);if(methodObject?.kind==='record')functionName=methodObject.type+'.'+method;}}
-    if(functions.has(functionName)){const fn=functions.get(functionName),offset=methodObject?1:0;if(node.args.length+offset!==fn.params.length)fail(node,'Function argument count mismatch');const next={__scope:(locals.__scope||'')+'>'+node.id,__series:new Map()};if(offset)next[fn.params[0]]=methodObject;fn.params.slice(offset).forEach((p,j)=>{const type=fn.parameters?.[j+offset]?.type;if(type)heap.type(arg(j),type);next.__series.set(p,{node:node.args[j],locals});});depth++;try{return Array.isArray(fn.body)?execute(fn.body,i,next):value(fn.body,i,next);}finally{depth--;}}
+    if(functions.has(functionName)){
+      const fn=functions.get(functionName),offset=methodObject?1:0,params=fn.params.slice(offset),bound=new Map();
+      if(node.args.length>params.length)fail(node,'Function argument count mismatch');
+      node.args.forEach((v,j)=>bound.set(params[j],v));
+      for(const[key,v]of Object.entries(node.named)){if(!params.includes(key)||bound.has(key))fail(node,'Unknown or duplicated function argument '+key);bound.set(key,v);}
+      if(bound.size!==params.length)fail(node,'Function argument count mismatch');
+      const next={__scope:(locals.__scope||'')+'>'+node.id,__series:new Map()};if(offset)next[fn.params[0]]=methodObject;
+      for(const [j,param]of params.entries()){
+        const ast=bound.get(param),actual=value(ast,i,locals),type=fn.parameters?.[j+offset]?.type;if(type)heap.type(actual,type);
+        next.__series.set(param,{node:ast,locals,cache:new Map([[i,actual]])});
+      }
+      depth++;try{return Array.isArray(fn.body)?execute(fn.body,i,next):value(fn.body,i,next);}finally{depth--;}
+    }
     if(name.endsWith('.new')&&types.has(name.slice(0,-4))){const def=types.get(name.slice(0,-4)),fields={},specs={};if(node.args.length>def.fields.length)fail(node,'Too many record constructor values');for(const key of Object.keys(node.named))if(!def.fields.some(f=>f.name===key))fail(node,'Unknown constructor field '+key);def.fields.forEach((f,j)=>{const fallback=f.type==='bool'?false:['string','color'].includes(f.type)?'':NaN;fields[f.name]=node.named[f.name]?value(node.named[f.name],i,locals):node.args[j]?arg(j):f.value?value(f.value,i,locals):fallback;specs[f.name]=f.type;});return heap.record(def.name,fields,specs);}
     if(name==='library')return 0;
     if(name.startsWith('str.')){const a=arg(0);switch(name){case'str.length':return String(a).length;case'str.tonumber':{const n=Number(a);return Number.isFinite(n)?n:NaN;}case'str.contains':return String(a).includes(String(arg(1)));case'str.substring':return String(a).slice(arg(1),arg(2));case'str.lower':return String(a).toLowerCase();case'str.upper':return String(a).toUpperCase();case'str.replace_all':{const text=boundedString(a),search=boundedString(arg(1)),replacement=boundedString(arg(2));const parts=text.split(search);const size=parts.reduce((n,x)=>n+x.length,0)+(parts.length-1)*replacement.length;if(size>100000)fail(node,'String length budget exceeded');return parts.join(replacement);}case'str.split':{const text=boundedString(a),separator=boundedString(arg(1));const parts=text.split(separator,10001);if(parts.length>10000)fail(node,'Split exceeds collection capacity');return heap.array(parts,'string');}}}
@@ -200,13 +234,13 @@ export function runScript(source,bars,options={}){
     }
     if(name.startsWith('ta.'))return technical(node,i,locals);
     if(name==='request.security_lower_tf'){
-      supported([]);const symbol=String(arg(0)),interval=timeframeSeconds(arg(1)),base=options.interval||3600;if(interval>=base)fail(node,'Lower-timeframe request must be below chart interval');const dataset=options.datasets?.[`${symbol}:${interval}`];if(!dataset)fail(node,'Explicit lower-timeframe dataset required');const key=stateKey(node,locals);let state=states.get(key);if(!state){if(!node.args[2])fail(node,'Requested expression required');const child={nodes:program.nodes,ast:[{type:'assign',name:'requested',op:'=',value:node.args[2],line:node.line}]};const remote=runScript(child,dataset.bars,{...options,interval,datasets:{},realtime:false,realtimeStates:{},varipSeedByTime:{},varipSeeds:{},capture:['requested'],maxOperations:Math.max(1,maxOperations-operations)});operations+=remote.operations;state={values:remote.captured.requested};states.set(key,state);}const end=Math.min(bars[i].t+base,options.realtime&&i===bars.length-1?(options.asOf??bars[i].t):Infinity),values=[];let lo=0,hi=dataset.bars.length;while(lo<hi){budget(node);const mid=(lo+hi)>>>1;if(dataset.bars[mid].t<bars[i].t)lo=mid+1;else hi=mid;}for(let j=lo;j<dataset.bars.length&&dataset.bars[j].t+interval<=end;j++){budget(node);if(!dataset.bars[j].partial)values.push(state.values[j]);}return heap.array(values,'float');
+      supported([]);const symbol=String(arg(0)),interval=timeframeSeconds(arg(1)),base=options.interval||3600;if(interval>=base)fail(node,'Lower-timeframe request must be below chart interval');const dataset=options.datasets?.[`${symbol}:${interval}`];if(!dataset)fail(node,'Explicit lower-timeframe dataset required');const key=stateKey(node,locals);let state=states.get(key);if(!state){if(!node.args[2])fail(node,'Requested expression required');const child={nodes:program.nodes,ast:[{type:'assign',name:'requested',op:'=',value:node.args[2],line:node.line}]};const remote=runScript(child,dataset.bars,{...options,beforeBar:undefined,afterBar:undefined,symbol,interval,datasets:{},realtime:false,realtimeStates:{},varipSeedByTime:{},varipSeeds:{},capture:['requested'],maxOperations:Math.max(1,maxOperations-operations)});operations+=remote.operations;state={values:remote.captured.requested};states.set(key,state);}const end=Math.min(bars[i].t+base,options.realtime&&i===bars.length-1?(options.asOf??bars[i].t):Infinity),values=[];let lo=0,hi=dataset.bars.length;while(lo<hi){budget(node);const mid=(lo+hi)>>>1;if(dataset.bars[mid].t<bars[i].t)lo=mid+1;else hi=mid;}for(let j=lo;j<dataset.bars.length&&dataset.bars[j].t+interval<=end;j++){budget(node);if(!dataset.bars[j].partial)values.push(state.values[j]);}return heap.array(values,'float');
     }
     if(name==='request.security'){
       supported(['lookahead','gaps']);if(node.named.lookahead||node.named.gaps)fail(node,'Only closed-bar alignment with gaps carried forward is supported');
       let state=states.get(stateKey(node,locals));if(!state){const symbol=String(arg(0)),tf=String(arg(1)),interval=timeframeSeconds(tf);if(interval<(options.interval||3600))fail(node,'Lower-timeframe security is not supported; supply aligned higher-timeframe data');const ds=options.datasets?.[`${symbol}:${interval}`];if(!ds)fail(node,`Dataset required: ${symbol}:${interval}`);
         const expr=node.args[2];if(!expr)fail(node,'Security requires an expression');const childProgram={nodes:program.nodes,ast:[{type:'expression',value:{type:'call',name:'plot',args:[expr],named:{},id:nextNode+100000+node.id,line:node.line},line:node.line}]};
-        const remote=runScript(childProgram,ds.bars,{...options,interval,datasets:{},maxOperations:Math.max(1,maxOperations-operations)});operations+=remote.operations;
+        const remote=runScript(childProgram,ds.bars,{...options,beforeBar:undefined,afterBar:undefined,symbol,interval,datasets:{},maxOperations:Math.max(1,maxOperations-operations)});operations+=remote.operations;
         state={aligned:alignClosedSeries(bars,ds.bars,remote.plots[0].values,interval,options.interval||3600)};states.set(stateKey(node,locals),state);
       }return state.aligned[i];
     }
@@ -272,12 +306,14 @@ export function runScript(source,bars,options={}){
   for(current=0;current<bars.length;current++){
     if(current){const names=[...persistent],clones=heap.cloneRoots(names.map(name=>array(name)[current-1]));names.forEach((name,j)=>array(name)[current]=clones[j]);}
     for(const[name,seed]of Object.entries(intrabarSeeds(current)))if(intrabar.has(name))array(name)[current]=structuredClone(seed);
-    execute(program.ast,current);
+    brokerSeries[current]=options.beforeBar?.(current)??{};
+    const commandStart=commands.length;execute(program.ast,current);
+    options.afterBar?.(current,commands.slice(commandStart));
   }
   const captured={};for(const name of (options.capture||[]).slice(0,16))if(vars.has(name))captured[name]=vars.get(name);
   return{...meta,plots:[...plots.values()],alerts:[...alerts.values()],commands,inputs:[...inputs.values()],fills,backgrounds,operations,bars:bars.length,captured,
     varip:Object.fromEntries([...intrabar].map(name=>[name,array(name).at(-1)])),profile:[...profile].map(([line,operations])=>({line,operations})).sort((a,b)=>b.operations-a.operations),heap:{elements:heap.elements,objects:heap.objects},
-    compatibility:'AureonScript 2: explicitly documented external scripting languages-inspired language, not full external scripting languages equivalence'};
+    graphics:graphics.snapshot(),compatibility:'AureonScript 4: original bounded financial-series language'};
 }
 /** Re-evaluates committed history for each open-bar update: ordinary var state is
  * rolled back; only varip seeds survive successive updates to that same bar. */
@@ -297,6 +333,8 @@ export class RealtimeScriptSession {
   reset(bars=[]){if(bars.some(b=>b.partial))throw new ScriptError('Seed only closed bars');this.closed=structuredClone(bars);this.varip={};this.openTime=null;this.varipSeedByTime={};this.realtimeStates={};}
 }
 export const SCRIPT_EXAMPLES={
+  retained:"indicator(\"Price annotation and status\", overlay=true)\nvar line guide = line.new(0, close, 1, close, color=color.aqua, width=2, extend=extend.right)\nline.set_xy2(guide, bar_index, close)\nvar label priceTag = label.new(0, close, \"Close\", style=label.style_label_down)\nlabel.set_xy(priceTag, bar_index, close)\nlabel.set_text(priceTag, str.tostring(close))\nvar table status = table.new(position.top_right, 2, 2)\ntable.cell(status, 0, 0, \"Symbol\")\ntable.cell(status, 1, 0, syminfo.tickerid)\ntable.cell(status, 0, 1, \"Close\")\ntable.cell(status, 1, 1, str.tostring(close), text_color=color.aqua)\nplot(ta.ema(source=close, length=20), \"EMA 20\")\n",
+  feedback:"strategy(\"Position-aware crossover\", overlay=true)\nfast = ta.ema(source=close, length=12)\nslow = ta.ema(source=close, length=26)\nif ta.crossover(fast, slow) and strategy.position_size == 0\n    strategy.entry(\"trend\", strategy.long, qty=1)\nif ta.crossunder(fast, slow) and strategy.position_size > 0\n    strategy.close(\"trend\")\nplot(fast, \"Fast\", color=color.aqua)\nplot(slow, \"Slow\", color=color.orange)\n",
   trend:`// AureonScript 1\nindicator("Adaptive trend", overlay=true)\nlength = input.int(21, "Length", minval=1, maxval=500)\nfast = ta.ema(close, length)\nslow = ta.sma(close, length * 2)\nplot(fast, "Fast EMA", color.blue, 2)\nplot(slow, "Slow SMA", color.orange, 2)\nplotshape(ta.crossover(fast, slow), title="Bull cross", color=color.green, location=location.belowbar)\nalertcondition(ta.crossover(fast, slow), "Bull cross", "Fast EMA crossed above slow SMA")`,
   strategy:`// AureonScript 1\nstrategy("Dual moving-average strategy", overlay=true)\nfastLen = input.int(12, "Fast", minval=1, maxval=100)\nslowLen = input.int(26, "Slow", minval=2, maxval=300)\nfast = ta.ema(close, fastLen)\nslow = ta.ema(close, slowLen)\nplot(fast, "Fast", color.blue)\nplot(slow, "Slow", color.orange)\nif ta.crossover(fast, slow)\n    strategy.entry("Long", strategy.long)\nif ta.crossunder(fast, slow)\n    strategy.entry("Short", strategy.short)`,
   oscillator:`indicator("Relative strength", overlay=false)\nn = input.int(14, "Length", minval=1, maxval=500)\nr = ta.rsi(close, n)\nplot(r, "RSI", color.purple, 2)\nhline(70, "Overbought", color.red)\nhline(30, "Oversold", color.green)\nalertcondition(ta.crossover(r, 30), "RSI recovery", "RSI crossed above 30")`,

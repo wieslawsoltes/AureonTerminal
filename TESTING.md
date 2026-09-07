@@ -1,45 +1,51 @@
-# Aureon Terminal v3 verification
+# Aureon Terminal v4 verification
 
-The v2 evidence is retained separately in `docs/V2_TESTING.md` and `verification/v2`. The v3 work was validated with Node.js 22 and Chromium on Linux. Counts below are executed checks, not promises of parity or production certification.
+Verification distinguishes executable source, local tests, real-origin browser tests, and external services. Archived earlier evidence is not proof that a new commit passes; the current commit's Actions runs are authoritative.
 
-## Local results
+## Local checks
 
-- **400 Node tests passed**, no failures/skips/TODO, including nested HTTP integration cases.
-- **46 existing browser regression groups passed**, no captured page JavaScript errors.
-- **29 new v3 browser groups passed**, no captured page JavaScript errors, using the standalone document and independent Canvas renderer.
-- Source syntax checks and standalone generation passed; the generated worker handlers are tested, not substituted stubs.
+- **446 automated Node tests passed**, with no failures, skips or TODOs, on Node 22.16.0.
+- **29 inherited v3 browser groups passed** through standalone document injection, with no captured page JavaScript errors.
+- **6 new v4 static browser groups passed** through document injection, with no captured page JavaScript errors.
+- Source syntax checks, standalone generation and the current-file independent-product reference guard passed.
 
-The local browser’s managed policy blocks loopback navigation. Its v3 run therefore used `--document`: browser authentication, PWA installation/offline navigation, secure-origin WebGPU and browser worker execution were **not** established there. Module/worker execution and actual HTTP server behavior were independently exercised in Node. The new secure-origin browser harness and CI workflow additionally run from a normal loopback origin; consult the PR Actions results/artifacts for their actual status, not these local counts.
+The managed local Chromium policy blocks loopback navigation. Local browser results therefore do not establish authenticated collaboration, real browser worker transport, or service-worker installation. Node HTTP/worker tests run independently. The CI browser workflow runs both suites on a real permitted HTTP origin: 31 inherited groups and 11 v4 groups, including authenticated two-browser collaboration and pending-queue recovery. Consult that workflow's report for the actual outcome rather than treating the suite definition as a passing result.
 
-## Added test coverage
+## New regression coverage
 
-`v3-analytics.test.js`: option values/put-call parity/Greeks finite differences/IV bounds, American trees, OCC dates, payoff multipliers, bond yield and derivatives, curves, as-of actions/rolls, FX freshness, AMM conservation, actual-print bars/profiles, confirmed pivot delay and pattern prefix causality.
+`tests/v4-core.test.js` covers disjoint-property convergence, deterministic shuffled delivery, authored selective undo, undo-before-target delivery, deletion versus concurrent edits, duplicate IDs/equivocation, atomic invalid-batch rejection, document limits and rendering-hostile property values. It also covers next-open position/equity feedback, history, prefix causality, holdout initialization, partial-bar exclusion and both scripted worker backtest routes.
 
-`v3-script.test.js`: call-site histories, arrays/maps/matrices, alias-preserving snapshots, typed records/methods, tuples, explicit libraries, lower-timeframe closure, realtime rollback/varip, profiling, unsafe-property rejection, allocation/string/cycle budgets. The two old tests that rejected newly supported function history were replaced with positive semantic tests, not simply removed to mask failures.
+`tests/v4-store.test.js` covers independent SQLite instances, rollback, restart and JSON migration; three actual Node processes committing to one local database; lease fencing; shared rate limits; committed SQLite backup/restore; and parallel vault initialization. These tests establish same-host concurrency, not multi-node HA or power-loss certification.
 
-`v3-execution.test.js`: named lots, reservations, targeted exits, partial execution, accounting events, queue-ahead consumption, magnifier reconciliation and no duplicate liquidity. Existing study/geometry tests enumerate all **73 studies and 66 drawings**.
+`tests/v4-services.test.js` runs two Node HTTP servers over shared SQLite state. It verifies shared sessions, room/member authorization, forged-author rejection, simultaneous disjoint drawing writes, selective undo, duplicate/equivocation behavior, revoked membership and durable crossing state across monitor takeover.
 
-`v3-security.test.js`: published RFC6238 SHA1/SHA256/SHA512 vectors; counter replay prevention; authenticated vault persistence; audit mutation/reorder detection; SSRF address rules; independent RFC8291 payload decryption and VAPID signature verification; outbox deduplication/backoff/deleted-channel handling; webhook owner binding/signatures.
+`tests/v4-script.test.js` covers retained line/box/label/table creation and updates, copy/delete, invalid options and capacity, opaque handles, literal text, realtime rollback, prefix behavior, finite projected geometry, clipping, replay cutoffs, named arguments with side effects, nested/cyclic libraries and nested higher-timeframe evaluation that cannot advance the parent account clock.
 
-`v3-providers.test.js`: fixed-host read-only fixtures, pagination, FRED vintage, SEC contact identity, credential redaction, concurrency, actual isolated server-script workers. **All real-money tests use fixtures**: default-disabled gates, pre-existing MFA owner, stale quotes, cash/positions, immutable previews, concurrent single-submission, uncertainty/reconciliation and hard attempted-notional caps. No real credentials or order submissions.
+The inherited monitor-deletion race now waits until the asynchronous lease acquisition actually reaches the provider before deleting the rule. It still asserts deletion suppresses the pending result; the safety assertion was not removed.
 
-`v3-services.test.js`: actual local Node HTTP requests for authentication/CSRF/MFA recovery, restart, role bootstrap, notification recipient isolation, immutable/private libraries, room revision races, opt-in messaging/blocks, moderation, isolated script evaluation, durable script/drawing crossings, deletion races and disabled live routing.
+## Browser suites
 
-`v3-backup.test.js`: authenticated encryption, incorrect passphrase/tampering rejection, state+vault restore and exclusive output creation.
+`verify-browser-v3.py` retains chart modes, pattern scanning, workers, sixteen editable panes, simulation, authentication, mobile layout and offline PWA checks.
+
+`verify-browser-v4.py` exercises editor controls, retained-object geometry/text, literal label handling, fill-aware advanced tester results, nested libraries, replay cutoffs and mobile layout. In HTTP mode it additionally signs in two browsers, joins a shared room through UI controls, merges concurrent offline property edits, checks ordinary toolbar undo against a remote edit, recovers a persisted queue after a lost acknowledgement/reload, and explicitly flushes/leaves.
+
+Both harnesses use demo/import fixtures rather than production providers. They poll through DevTools without weakening the application's Content Security Policy. Browser evidence includes JSON reports and screenshots; failures still cause a nonzero process exit.
 
 ## Commands
 
 ```sh
 npm run build
+npm run references
 npm run check
-python scripts/verify-browser-v2.py
 python scripts/verify-browser-v3.py
-# In browser environments that deliberately block loopback navigation only:
+python scripts/verify-browser-v4.py
+# Restricted browser environments only (transport groups are explicitly skipped):
 python scripts/verify-browser-v3.py --document
+python scripts/verify-browser-v4.py --document
 ```
 
-The browser scripts require Python Playwright and Chromium, independently of application runtime. Set `CHROMIUM` to the installed executable. Reports distinguish renderer and worker availability. Screenshots/JSON are written under verification; CI artifacts are the authoritative result of that run.
+Python Playwright and Chromium are test tools, not runtime dependencies. `CHROMIUM` selects the installed executable. Reports are written to `verification/v3/` and `verification/v4/`; CI uploads fresh evidence. Regenerate the committed standalone distribution before checking reproducibility.
 
 ## Not established
 
-Actual WebGPU hardware shader/device execution or GPU throughput; production Coinbase end-to-end reliability; authenticated external paper/live brokerage, research entitlements, live email/SMS/Push delivery; live Docker/TLS deployment; exchange certification; accuracy of heuristic pattern classification; WCAG/native-app parity; distributed storage/delivery or guaranteed recovery. Tests prove specific invariants and fixtures, not the completeness of external charting platforms semantics.
+Hardware WebGPU shader/device execution or throughput; credentialed production research/broker feeds; real-money orders; recipient receipt of email/SMS/push; production TLS/container operation; native mobile binaries; accessibility certification; global licensed datasets; multi-node failover; lossless recovery after power failure; recognition/prediction accuracy of heuristic patterns; or an operational SLA. No real credentials, external notifications or real orders were used for this implementation's tests.

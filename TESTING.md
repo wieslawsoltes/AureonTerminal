@@ -1,4 +1,40 @@
-# Aureon Terminal v4.4 verification
+# Aureon Terminal v4.5 verification
+
+The current local source passes **732 automated Node tests**: 648 inherited,
+61 incremental-planner/kernel tests, 22 tail-transport tests and one additional
+shipped-example regression. No failures, skips or TODOs. Build/reference guard
+and committed standalone reproducibility are checked separately.
+
+The new **12 document-mode browser groups pass**, zero captured page errors.
+This mode explicitly disables workers. Local HTTP navigation returned
+`ERR_BLOCKED_BY_ADMINISTRATOR`; no browser policy was changed. These local
+results do not establish real browser worker transport or reload persistence.
+The normal `verify-browser-v45.py` requires actual workers and includes a
+thirteenth persistence group. PR CI runs it after all 83 inherited groups,
+including the actual SwiftShader software-device suite. Read the actual PR
+head's artifacts for passing evidence, not this test definition.
+
+Incremental tests compare closed seeds, repeated provisional observations and
+confirmed rollovers against the unchanged reference interpreter across window,
+recursive and event kernels. They exercise history, gaps, warm-up, colors,
+shapes, alerts, flags, conservative fallback, sandbox rejection, memory/operation
+bounds, source ownership, transfer safety and graph work independent of retained
+history size. Tail tests cover exact reconstructed outputs, buffer reuse/growth,
+atomic invalid frames, wrong identities/cursors/schema/clocks, reference full
+snapshots and repeated messages through the actual Node worker handler.
+
+`npm run benchmark:realtime` checks numerical equality before reporting scoped
+synthetic CPU results. One warm-up and median-of-three runs use 1,200 bars and
+40 intrabar updates over four plots. Incremental patches contain 160 numeric
+values across those updates versus 192,000 for full reference snapshots. No
+wall-clock threshold is enforced; the benchmark is not an IPC, browser,
+production feed, physical GPU, or throughput/SLA measurement.
+
+No provider credentials, real brokerage orders, externally delivered alerts,
+identity recovery operations or multi-host services are exercised by this round.
+Further language acceleration remains documented rather than asserted.
+
+# Archived v4.4 local verification
 
 The current local source passes **648 automated tests** (591 inherited plus 57
 new session/decimation regressions), with no failures, skips or TODOs. The local

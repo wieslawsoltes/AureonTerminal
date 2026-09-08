@@ -1,4 +1,4 @@
-# Aureon Terminal 4.3 — architecture and invariants
+# Aureon Terminal 4.5 — architecture and invariants
 
 ## Application boundary
 
@@ -90,7 +90,7 @@ Each EventHub polls every 250 ms and emits at most 64 events per client per pump
 
 `createJobRuntime` owns a `LiveScriptRuntime` per worker; pure batch jobs remain independent. An explicit start validates ascending history and at most one open bar. Every update has a consecutive sequence and a monotonic as-of time. A rollover must supply the actual completed bar; changed open/extrema/volume or a gap fails closed. The editor sends accepted primary-series observations to a dedicated worker without silently coalescing them. Sixty-four pending observations, history capacity or worker loss stop the session and require explicit restart. Strategies are rejected in this path.
 
-The underlying session re-evaluates bounded history for rollback correctness; it is intentionally not advertised as an incremental compiler. Replay/context epochs, series identity/version and replay cutoff checks prevent stale batch outputs being applied to another history. Authoritative REST history changes stop realtime; byte-equivalent OHLCV reconciliation does not invent another observation.
+The reference session re-evaluates bounded history for rollback correctness. The 4.5 scalar-series engine, described below, instead retains incremental kernel checkpoints and explicitly selects the reference path for unsupported source. Replay/context epochs, series identity/version and replay cutoff checks prevent stale batch outputs being applied to another history. Authoritative REST history changes stop realtime; byte-equivalent OHLCV reconciliation does not invent another observation.
 
 `analyzeFootprint` computes imbalances solely from classified observed volume. Diagonal ratios compare a buy row against the observed sell row below and vice versa; a missing row is not a zero denominator. Stacks require contiguous ticks. Unknown-side volume contributes to volume/POC/value area but not directional imbalance. POC ties select the lower row; value area expands from POC by the larger adjacent observed volume, downward on ties.
 
@@ -147,3 +147,27 @@ coverage metadata and segment-aligned aggregates. `SessionPanel` owns a dedicate
 completion and exports. Only normalized rules/settings enter workspace storage.
 `visitLineEnvelope` separates finite runs before extrema selection so visual LOD
 never invents connections across unknown intervals or session boundaries.
+
+## Incremental indicator execution and transport (4.5)
+
+`script-incremental.js` conservatively lowers the existing AST into a sequential
+scalar-series graph. The seed runs once; window kernels use path-copied aggregate
+trees and recursive kernels use scalar checkpoints. An unconfirmed observation
+restores pre-step roots/state. Confirming the prior bar on rollover commits its
+actual values before the next provisional evaluation. Unsupported whole scripts
+retain the unchanged interpreter, including `varip` and retained objects.
+
+`script-live.js` selects the engine before seeding, preserving existing context,
+sequence and OHLC fences. The default API returns full snapshots. The editor
+requests an identified tail stream: one full seed, then one current row or two
+rollover rows per output. `script-live-result.js` validates the entire patch
+before applying it to reusable main-thread buffers. Chart snapshots are owned
+mutable views; independent audit consumers must copy them. Worker histories are
+never transferred or detached. No code generation, executable source loading,
+brokerage command route or provider request is introduced.
+
+Kernel work, result assembly, worker transport and rendering remain separate
+costs. Logical memory/operation bounds, failure behavior, numerical tolerances,
+the supported subset and benchmark methodology are specified in
+`docs/INCREMENTAL_RUNTIME.md`. Batch/research/portfolio interpreter semantics and
+workspace schema versions remain unchanged.

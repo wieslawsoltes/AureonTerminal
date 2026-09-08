@@ -1,3 +1,16 @@
+# 4.5.0 — incremental indicators and bounded tail transport
+
+- Plan supported scalar-series source using the original parser, with 20
+  incremental technical kernels and explicit whole-source reference fallback.
+- Seed closed bars once; restore persistent aggregate roots and scalar
+  checkpoints between provisional observations; commit actual rollover bars.
+- Stream identified, sequence-checked tails into reusable main-thread chart
+  buffers; retain the backward-compatible full-snapshot low-level protocol.
+- Add engine selection, preflight, execution diagnostics, streaming example and
+  persisted preference without automatically resuming a session or routing orders.
+- Differential kernel/rollback tests, malformed-patch atomicity, actual worker
+  transport, editor browser regression and a scoped synthetic CPU benchmark.
+
 # 4.1.0
 
 ## 4.4.0 — explicit sessions and gap-aware research

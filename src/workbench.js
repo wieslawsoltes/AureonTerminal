@@ -1,3 +1,4 @@
+import {PRODUCT_VERSION} from './release.js';
 import {RoomDrawingSync} from './drawing-sync.js';
 import {ChartWorkspace} from './chart-workspace.js';
 /** Advanced workspace controller. Numerical work is delegated to pure modules
@@ -42,7 +43,7 @@ export class Workbench {
   }
   installShell(){
     document.addEventListener('change',e=>{if(e.target.id==='sync-tile-drawings'){this.config.syncDrawings=e.target.checked;this.save();}});
-    const version=document.querySelector('.version');if(version)version.textContent='v4.2';
+    const version=document.querySelector('.version');if(version)version.textContent='v'+PRODUCT_VERSION;
     const toolbar=document.createElement('div');toolbar.className='workbench-toolbar';toolbar.innerHTML=`<span class="v2-badge">WORKBENCH</span>${button('Studies','studies')}${button('Drawing tools','tools')}${button('Chart settings','chart-options')}${button('Layout','layout')}${button('Compare / spread','spread')}${button('Profiles','profile')}<span class="toolbar-separator"></span>${button('Script editor','panel-script')}${button('Screener','panel-screener')}${button('Order flow','panel-flow')}${button('Pro tools','panel-pro')}<div class="header-spacer"></div><span id="v2-compute-status" class="small-note">Float64 studies · causal scripts</span>${button('⌘ ⇧ P','commands')}`;
     document.querySelector('.chart-toolbar').insertAdjacentElement('afterend',toolbar);
     const tabs=document.querySelector('.panel-tabs'),spacer=tabs.querySelector('.header-spacer');

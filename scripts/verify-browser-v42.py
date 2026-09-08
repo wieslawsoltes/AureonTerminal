@@ -138,4 +138,6 @@ async def main():
                 process.terminate()
                 try:process.wait(timeout=5)
                 except subprocess.TimeoutExpired:process.kill();process.wait()
-if __name__=='__main__':asyncio.run(main())
+if __name__=='__main__':
+    asyncio.run(main())
+    if not DOCUMENT:subprocess.run([sys.executable,str(ROOT/'scripts/verify-browser-v43.py')],cwd=ROOT,check=True)

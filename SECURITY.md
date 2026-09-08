@@ -61,3 +61,18 @@ Realtime editor mode is indicator-only. It has no route to brokerage, no indepen
 The screening pool executes bounded indicator programs only. It never sends orders, delivers alerts or fetches implicit datasets. Imported source, scalar inputs, libraries and market observations stay local to the browser and its dedicated workers unless the user explicitly exports a report or separately saves their workspace to a private server. JSON reports include captured source/inputs/local libraries and result rows; review their contents before sharing.
 
 Cutoffs are common across primary and explicitly requested datasets. Partial bars are excluded rather than converted into confirmed prices. The interpreter operation/heap/source limits still apply. Worker count, total copied bars, result columns and predicate counts have explicit bounds. Cancellation kills only scan-owned workers. A clone/worker error cannot silently turn a stateful session into fresh synchronous execution. CSV export prefixes formula-like text; data is never interpreted as JavaScript or inserted as unescaped HTML.
+
+### Renderer resource and diagnostic boundaries (4.3)
+
+The geometry builder bounds primitive count and rejects nonfinite coordinates,
+invalid colors and nonprogressing dash subdivision. Backing-store pixel budgets
+apply before allocation, including the text overlay. Limits are per chart, not a
+process-wide GPU memory guarantee. Device loss requires explicit retry and does
+not change financial state.
+
+Pixel verification uses a temporary device and fixed primitive fixtures. It
+performs no network request and does not destroy the application's shared device.
+Manual diagnostic JSON exports report renderer state and adapter identifiers;
+users decide whether to share them. Reports contain no account credentials.
+Readback is bounded and is not performed in normal chart frames. Browser
+permission or administrator restrictions are not bypassed by the app or tests.

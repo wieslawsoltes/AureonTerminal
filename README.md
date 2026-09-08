@@ -1,4 +1,4 @@
-# Aureon Terminal 4.2
+# Aureon Terminal 4.3
 
 Plain HTML/CSS/JavaScript market workbench with native WebGPU geometry and an independent Canvas fallback. The application includes 26 chart styles, 84 configurable studies, 66 drawing tools, editable 16-chart layouts, bounded scripting, causal pattern scans, financial models and opt-in private services.
 
@@ -53,7 +53,7 @@ The script editor supports bounded collections, typed records/methods, local ver
 
 Run the private server, sign in from each browser, and create a room with the intended members in **Pro tools → Collaboration**. Load the room, then explicitly join its drawing document. Edits merge per property; undo disables only the author's operation instead of overwriting another member's work. Same-symbol tile participation uses the existing opt-in drawing synchronization setting.
 
-Pending operations stay in tab session storage until acknowledged. Reloading and explicitly rejoining recovers them; **Flush and leave** refuses to discard failed writes. Closing the tab can clear that storage. Membership is checked server-side, including at commit time. Document capacity is bounded rather than silently truncating history.
+Pending operations are stored transactionally in IndexedDB until acknowledged. Explicitly rejoining recovers committed edits after reload or tab closure; **Flush and leave** refuses to discard failed writes. Browser eviction, clearing site data, or closing before transaction completion can still lose edits. Membership is checked server-side, including at commit time. Document capacity is bounded rather than silently truncating history.
 
 ## Static hosting versus private server
 
@@ -96,3 +96,35 @@ MIT licensed. Provider names identify optional integrations, not affiliation or 
 **Pro tools → Actual trades** exposes diagonal or same-row imbalances, minimum classified volume, stacked consecutive rows and a volume value area. Missing rows remain unknown rather than zero-volume evidence. Retained script objects are rebuilt on the initial replay seek and on rewind, and stale worker completions cannot restore explicitly removed plots.
 
 **Shared event delivery** stores alert/message/workspace/room notifications in the same transaction as the source mutation. SQLite processes read the same bounded journal. EventSource reconnects use `Last-Event-ID`; expired history signals an explicit resync rather than pretending nothing was missed. See [ARCHITECTURE.md](ARCHITECTURE.md) for retention and delivery limits.
+
+## 4.3 renderer reliability and verification
+
+The primary chart Settings now expose Auto/WebGPU or Canvas, 1x/4x GPU
+antialiasing, an explicit WebGPU retry, downloadable diagnostics, and a six-case
+GPU pixel check. Diagnostics never contain account credentials or market data.
+The pixel check creates a separate temporary device and sends no external traffic.
+
+The renderer retains the last accepted geometry independently of the chart's
+mutable build buffer. Device loss immediately repaints that frame using Canvas.
+Switching backends does not recreate analysis workers or mutate drawings/prices.
+GPU devices and compiled pipelines are shared across charts; canvas targets and
+buffers are owned and released by each individual chart.
+
+Geometry is capped at 262,144 primitives per chart, with omissions reported.
+Backing stores (including the text overlay) are capped at 8,388,608 pixels and
+8,192 pixels per side; adapter limits can reduce GPU resolution further.
+Diagnostic pixel capture is limited to 4,194,304 pixels. Size limits reduce
+rendering resolution, never the underlying financial dataset.
+
+Run `node --test tests/v43-renderer.test.js` for isolated lifecycle/bounds tests.
+Run `python scripts/verify-browser-v43.py` with Playwright and Chromium installed
+for real WGSL, MSAA, texture readback and simulated device-loss checks using the
+explicitly selected SwiftShader software adapter. That suite fails, rather than
+claiming a Canvas fallback as GPU verification, if WebGPU is unavailable.
+Physical GPU throughput and driver-crash recovery are separate, unverified targets.
+
+The actual-device renderer verifier requires a graphical display. On a Linux test
+host, run `xvfb-run -a python scripts/verify-browser-v43.py` after installing the
+Playwright Chromium test dependencies. GitHub CI provisions this virtual display
+automatically. Its software-adapter flags belong only to the isolated deterministic
+test browser, not a recommended configuration for browsing untrusted sites.

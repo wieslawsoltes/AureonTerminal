@@ -1,4 +1,4 @@
-# Aureon Terminal 4.2 — implementation inventory
+# Aureon Terminal 4.3 — implementation inventory
 
 Aureon is an independent implementation. This document describes executable source and its actual interfaces, not certification, ownership of market-data rights, or equivalence to another product. Unsupported syntax and unavailable datasets fail explicitly. Tests and operating limits are documented separately in `TESTING.md` and `SECURITY.md`.
 
@@ -6,7 +6,7 @@ Aureon is an independent implementation. This document describes executable sour
 
 | Capability | Implemented | Limits |
 |---|---|---|
-| Rendering | Native instanced WebGPU rectangles/segments; float64 financial calculations projected to local GPU pixels; independent Canvas renderer | Text is a Canvas overlay. Hardware GPU execution and throughput have not been verified in this environment. |
+| Rendering | Native instanced WebGPU rectangles/segments; float64 financial calculations projected to local GPU pixels; independent Canvas renderer | Text is a Canvas overlay. Actual WGSL execution, visible pixels and device-loss recovery are tested on SwiftShader; physical GPU execution and throughput remain unverified. |
 | Chart catalogue | 26 registered chart styles, 84 configurable study types, 66 drawing tools | Counts describe the actual registries, not an unlimited catalogue. Statistical warm-up gaps are preserved. |
 | Rolling distribution studies — new | AVL median/quantiles, centered-moment regression/correlation/variance and UTC bucket weighted deviation bands | O(log window) rolling updates; float64, not arbitrary precision. Strict gaps/warm-up; fixed UTC buckets are not exchange calendars. |
 | Observed-trade charts | Footprint, TPO, tick-count, volume and range views; configurable diagonal/same-row and stacked imbalances, deterministic POC/value area; aggressor/unknown classification and explicit provenance | Only supplied/received observations; no reconstruction of missing exchange prints. Older close-derived Renko/Kagi/P&F/line-break modes remain labeled approximations. |
@@ -66,3 +66,22 @@ An exhaustive language/builtin catalogue, complete intrabar strategy recalculati
 ### Event replay limits (4.1)
 
 The journal retains at most 4,096 entries for 24 hours. It carries small invalidations or bounded alert payloads, not full private workspace snapshots. A new stream starts at the tail; automatic reconnection resumes an opaque epoch/sequence cursor. A stale, foreign, future or pruned cursor emits a resync instruction. Persistent consumers must refresh authoritative state after resync. Delivery is not exactly-once and this is not multi-host pub/sub. Five streams per user per process and bounded socket backpressure prevent unbounded per-client buffering.
+
+## 4.3 renderer update
+
+Implemented: bounded geometry/backing stores, shared device/pipeline lifetime,
+per-chart resource ownership, immutable last-frame fallback, explicit retry,
+1x/4x multisampling, and diagnostic RGBA readback with lifecycle fencing.
+Settings expose the backend, quality, diagnostics export and primitive pixel
+verification. These settings are primary-chart/session-local.
+
+The new verifier requires actual WebGPU with the SwiftShader software adapter
+in a headed Chromium window (Xvfb in Linux CI), including visible screenshot pixels;
+its pass/fail report is independent of the normal Canvas browser suite. A
+software-device result is not physical GPU performance certification. CPU
+mock-device unit tests are identified separately in TESTING.md.
+
+Renderer acquisition tolerates a transient null adapter with at most three
+requests per explicit initialization (40/80 ms backoff). Persistent failure stays
+on Canvas and requires user retry. Diagnostics retain the optional adapter device
+label and fallback flag; these labels are not performance or security evidence.

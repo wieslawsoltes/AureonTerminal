@@ -1,4 +1,4 @@
-# Aureon Terminal 4.3
+# Aureon Terminal 4.4
 
 Plain HTML/CSS/JavaScript market workbench with native WebGPU geometry and an independent Canvas fallback. The application includes 26 chart styles, 84 configurable studies, 66 drawing tools, editable 16-chart layouts, bounded scripting, causal pattern scans, financial models and opt-in private services.
 
@@ -128,3 +128,15 @@ host, run `xvfb-run -a python scripts/verify-browser-v43.py` after installing th
 Playwright Chromium test dependencies. GitHub CI provisions this virtual display
 automatically. Its software-adapter flags belong only to the isolated deterministic
 test browser, not a recommended configuration for browsing untrusted sites.
+
+## 4.4 session research
+
+Open **Pro tools → Trading sessions** for explicit timezone-aware calendars,
+overnight/split sessions, closure and early-close overrides, closed-source-bar
+resampling, VWAP/deviation bands, confirmed opening ranges and previous complete
+session levels. Imported rules stay drafts until applied. Results are captured
+research, not executable quotes; raw chart data is never replaced.
+
+See [calendar schema, usage and limits](docs/TRADING_SESSIONS.md),
+[example calendar](examples/session-calendar.json), and the
+[remaining capability backlog](docs/CAPABILITY_BACKLOG.md).

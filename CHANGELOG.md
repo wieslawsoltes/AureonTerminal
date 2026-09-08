@@ -1,5 +1,17 @@
 # 4.1.0
 
+## 4.4.0 — explicit sessions and gap-aware research
+
+- Bounded timezone calendar with overnight/split sessions, explicit holidays and
+  overrides, DST fold policies, and civil-date trade labels.
+- Closed-source aggregation, complete/partial coverage, missing-session reports,
+  session VWAP/bands, confirmed opening range and prior complete-session levels.
+- Trading sessions panel, isolated worker, source/replay invalidation, rule
+  persistence, validated calendar import and formula-guarded CSV/JSON export.
+- Line decimation preserves NaN gaps and session discontinuities at any zoom.
+- Added unit/worker and browser regressions; no provider credentials or orders.
+
+
 - Persist shared events transactionally and replay bounded, authorized SSE cursors across same-host processes; enforce current session/membership and socket backpressure.
 - Require an explicit active backup driver when JSON and SQLite files coexist.
 - Recover shared drawing queues across tab closure with operation-level IndexedDB transactions, independent replica identities and exact-payload acknowledgement; preserve failed write batches for retry.

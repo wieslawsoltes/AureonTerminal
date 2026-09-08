@@ -1,3 +1,4 @@
+import {validateSessionSettings} from './session-analysis.js';
 import {validateScreenQuery} from './screening-query.js';
 import {footprintSettings} from './footprint-analysis.js';
 import {validateDrawing} from './drawings.js';
@@ -6,7 +7,7 @@ import {normalizeCandles,validateWorkspace} from './core.js';
 import {SessionCalendar} from './analytics.js';
 import {STUDIES,studyParameters} from './studies.js';
 import {SCRIPT_EXAMPLES} from './script.js';
-export function defaultExtensions(){return{version:2,studies:[],studyTemplates:[],scripts:[{id:'trend',name:'Adaptive trend',source:SCRIPT_EXAMPLES.trend},{id:'strategy',name:'Dual EMA strategy',source:SCRIPT_EXAMPLES.strategy},{id:'oscillator',name:'RSI oscillator',source:SCRIPT_EXAMPLES.oscillator}],scriptId:'trend',scriptInputs:{},typeOptions:{},timezone:'UTC',layout:1,layoutItems:[],syncViews:true,syncCrosshair:true,syncDrawings:false,libraries:{},layouts:[],watchlists:{Default:['BTC-USD','ETH-USD','SOL-USD','XRP-USD']},research:{version:1,source:'User-imported research',universe:[],events:[],fundamentals:[],news:[]},rules:[],profile:false,session:null,screenQuery:validateScreenQuery(),screenTemplates:[]};}
+export function defaultExtensions(){return{version:2,studies:[],studyTemplates:[],scripts:[{id:'trend',name:'Adaptive trend',source:SCRIPT_EXAMPLES.trend},{id:'strategy',name:'Dual EMA strategy',source:SCRIPT_EXAMPLES.strategy},{id:'oscillator',name:'RSI oscillator',source:SCRIPT_EXAMPLES.oscillator}],scriptId:'trend',scriptInputs:{},typeOptions:{},timezone:'UTC',layout:1,layoutItems:[],syncViews:true,syncCrosshair:true,syncDrawings:false,libraries:{},layouts:[],watchlists:{Default:['BTC-USD','ETH-USD','SOL-USD','XRP-USD']},research:{version:1,source:'User-imported research',universe:[],events:[],fundamentals:[],news:[]},rules:[],profile:false,session:null,sessionResearch:validateSessionSettings(),screenQuery:validateScreenQuery(),screenTemplates:[]};}
 export function validateResearch(raw){if(!raw||raw.version!==1)throw new Error('Research schema requires version: 1.');const out={version:1,source:String(raw.source||'User import').slice(0,200),universe:[],events:[],fundamentals:[],news:[]};
   for(const key of['universe','events','fundamentals','news'])if(raw[key]!=null&&(!Array.isArray(raw[key])||raw[key].length>(key==='universe'?100:10000)))throw new Error('Invalid research '+key);
   let candleCount=0;for(const u of raw.universe||[]){if(typeof u.symbol!=='string'||!/^[A-Z0-9._/-]{1,40}$/.test(u.symbol)||!Number.isInteger(u.interval)||u.interval<1)throw new Error('Invalid universe metadata');const bars=normalizeCandles(u.bars);candleCount+=bars.length;if(candleCount>500000)throw new Error('Research candle limit is 500,000.');out.universe.push({symbol:u.symbol,interval:u.interval,source:String(u.source||out.source).slice(0,200),bars});}
@@ -29,6 +30,7 @@ export function validateExtensions(raw,depth=0){const out=defaultExtensions();if
   for(const [key,library]of Object.entries(raw.libraries||{}).slice(0,32)){if(!/^[A-Za-z0-9_.-]+\/[A-Za-z][A-Za-z0-9_]*\/[1-9][0-9]*$/.test(key)||typeof library?.source!=='string'||library.source.length>100000)throw new Error('Invalid local script library');out.libraries[key]={source:library.source};}
   out.research=raw.research?validateResearch(raw.research):out.research;
   if(raw.session){const q=raw.session;if(!Array.isArray(q.weekdays)||q.weekdays.some(x=>!Number.isInteger(x)||x<0||x>6)||(q.holidays!=null&&(!Array.isArray(q.holidays)||q.holidays.length>10000||q.holidays.some(x=>!/^\d{4}-\d{2}-\d{2}$/.test(x)))))throw new Error('Invalid session calendar');new SessionCalendar(q);out.session={timezone:q.timezone||out.timezone,open:q.open,close:q.close,weekdays:[...new Set(q.weekdays)],holidays:q.holidays||[]};}
+  out.sessionResearch=validateSessionSettings(raw.sessionResearch??{});
   out.screenQuery=validateScreenQuery(raw.screenQuery||{});
   if(raw.screenTemplates!=null&&(!Array.isArray(raw.screenTemplates)||raw.screenTemplates.length>20))throw new Error('At most 20 saved screen queries');
   out.screenTemplates=(raw.screenTemplates||[]).map(t=>{if(typeof t.id!=='string'||!t.id||t.id.length>128||typeof t.name!=='string'||!t.name||t.name.length>80)throw new Error('Invalid saved screen query');return{id:t.id,name:t.name,query:validateScreenQuery(t.query)};});

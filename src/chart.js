@@ -1,3 +1,4 @@
+import {visitLineEnvelope} from './line-decimation.js';
 import {renderScriptGraphics} from './script-graphics-renderer.js';
 import {TRADE_CHART_TYPES,tradeDisplay,prepareTradeProfiles,renderProBar,renderTradeOverlay} from './chart-pro.js';
 import {computeIndicators} from './indicators.js';
@@ -32,7 +33,7 @@ export class Chart {
   }
   get length(){return (NON_TIME_TYPES.has(this.style)||TRADE_CHART_TYPES.has(this.style))?this.bars.length:Math.min(this.bars.length,this.endLimit??Infinity);}
   setStyle(style,options=this.typeOptions||{}){this.style=style;this.typeOptions=options;this.setData(this.rawBars||this.bars,this.rawIndicators||this.indicators,{reset:true});if(this.tradeData?.length)this.setTradeData(this.tradeData,options);if(['footprint','tpo'].includes(style)){this.count=Math.min(this.count,24);this.right=this.length+2;} }
-  projectStudies(){if(TRADE_CHART_TYPES.has(this.style)){this.extraStudies=[];return;}this.extraStudies=(this.rawStudies||[]).map(s=>({...s,backgrounds:s.backgrounds?.map(b=>({...b,values:NON_TIME_TYPES.has(this.style)?this.bars.map(x=>b.values[x.sourceIndex]):b.values})),plots:s.plots.map(p=>({...p,values:NON_TIME_TYPES.has(this.style)?projectValues(p.values,this.bars):p.values,colors:p.colors&&NON_TIME_TYPES.has(this.style)?this.bars.map(b=>p.colors[b.sourceIndex]):p.colors}))}));}
+  projectStudies(){if(TRADE_CHART_TYPES.has(this.style)){this.extraStudies=[];return;}this.extraStudies=(this.rawStudies||[]).map(s=>({...s,backgrounds:s.backgrounds?.map(b=>({...b,values:NON_TIME_TYPES.has(this.style)?this.bars.map(x=>b.values[x.sourceIndex]):b.values})),plots:s.plots.map(p=>({...p,values:NON_TIME_TYPES.has(this.style)?projectValues(p.values,this.bars):p.values,breaks:p.breaks&&NON_TIME_TYPES.has(this.style)?this.bars.map(b=>p.breaks[b.sourceIndex]):p.breaks,colors:p.colors&&NON_TIME_TYPES.has(this.style)?this.bars.map(b=>p.colors[b.sourceIndex]):p.colors}))}));}
   setStudies(studies){this.rawStudies=studies;this.projectStudies();this.invalidate();}
   setData(bars,indicators=this.rawIndicators||this.indicators,{reset=false}={}){this.rawBars=bars;this.rawIndicators=indicators;if(TRADE_CHART_TYPES.has(this.style)){const cutoff=this.endLimit!=null?bars[this.endLimit-1]?.t+this.interval:Infinity;bars=tradeDisplay((this.tradeData||[]).filter(t=>(t.t??t.time)<cutoff),this.style,this.typeOptions);indicators=computeIndicators(bars);}else if(NON_TIME_TYPES.has(this.style)){bars=deriveChart(this.endLimit!=null?bars.slice(0,this.endLimit):bars,this.style,this.typeOptions);indicators=projectValues(indicators,bars);}const oldLength=this.dataLength??this.length,oldFirst=this.firstTime??this.bars[0]?.t,following=this.right>=oldLength-3;this.bars=bars;this.indicators=indicators;this.ha=null;
     if(reset){this.right=this.length+6;this.count=Math.min(140,Math.max(30,this.length+12));this.manualRange=null;}
@@ -177,14 +178,9 @@ export class Chart {
     for(const m of this.markers){if(m.t>this.bars[this.length-1].t)continue;const x=this.toX(this.timeIndex(m.t)),y=this.toY(m.p);if(x>=0&&x<=this.plotWidth&&y>=this.price.y&&y<=this.price.y+this.price.h)this.labels.push({x,y:y+(m.side==='buy'?16:-14),text:m.side==='buy'?'▲':'▼',color:m.side==='buy'?c.up:c.down,align:'center'});}
     // Opaque rails mask geometry outside the plot bounds; axes labels are overlaid next.
   }
-  plot(values,color,box,width=1.4,min,max){if(!values)return;const toY=min==null?p=>this.toY(p):p=>box.y+box.h-10-(p-min)/(max-min||1)*Math.max(4,box.h-28);
+  plot(values,color,box,width=1.4,min,max,breaks){if(!values)return;const toY=min==null?p=>this.toY(p):p=>box.y+box.h-10-(p-min)/(max-min||1)*Math.max(4,box.h-28);
     const stride=Math.max(1,Math.floor(1/this.step));let previous=null;
-    // Min/max envelope decimation keeps sharp excursions visible when zoomed out.
-    for(let i=this.first;i<this.last;i+=stride){const pts=[];let mini=i,maxi=i;
-      for(let j=i;j<Math.min(this.last,i+stride);j++){if(!Number.isFinite(values[j]))continue;if(!Number.isFinite(values[mini])||values[j]<values[mini])mini=j;if(!Number.isFinite(values[maxi])||values[j]>values[maxi])maxi=j;}
-      for(const j of [...new Set([i,mini,maxi,Math.min(this.last-1,i+stride-1)])].sort((a,b)=>a-b))if(Number.isFinite(values[j]))pts.push({x:this.toX(j),y:toY(values[j])});
-      if(!pts.length){previous=null;continue;}for(const p of pts){if(previous)clippedLine(this.geometry,previous.x,previous.y,p.x,p.y,color,width,box);previous=p;}
-    }
+    visitLineEnvelope(values,this.first,this.last,stride,breaks,(index,move)=>{if(move)previous=null;const p={x:this.toX(index),y:toY(values[index])};if(previous)clippedLine(this.geometry,previous.x,previous.y,p.x,p.y,color,width,box);previous=p;});
   }
   drawPane(key,box){const g=this.geometry,c=this.colors,info=INDICATOR_INFO[key],raw=this.indicators[key];g.line(0,box.y,this.width,box.y,rgba(c.grid));this.labels.push({x:12,y:box.y+15,text:info.label,color:info.color});if(!raw)return;
     let series=key==='macd'?[raw.line,raw.signal,raw.histogram]:key==='stoch'?[raw.k,raw.d]:[raw];
@@ -222,8 +218,8 @@ export class Chart {
       for(const p of s.plots){const color=rgba(p.color||'#578bfa');
         if(p.kind==='plotshape'||p.style==='plot.style_circles'){for(let i=this.first;i<this.last;i++)if(Number.isFinite(p.values[i])){const x=this.toX(i),y=yy(p.values[i]);if(x>=0&&x<=box.w&&y>=box.y&&y<=box.y+box.h)this.labels.push({x,y:y+(p.location==='location.abovebar'?-10:10),text:p.kind==='plotshape'?(p.location==='location.abovebar'?'▼':'▲'):'•',color:p.colors?.[i]||p.color,align:'center'});}}
         else if(p.style==='plot.style_columns'||p.style==='plot.style_histogram'||p.name==='histogram'){for(let i=this.first;i<this.last;i++)if(Number.isFinite(p.values[i])){const x=this.toX(i),zero=clamp(yy(0),box.y,box.y+box.h),y=clamp(yy(p.values[i]),box.y,box.y+box.h);if(x>=0&&x<=box.w)this.geometry.rect(x-this.step*.3,zero,Math.max(1,this.step*.6),y-zero,rgba(p.values[i]>=0?this.colors.up:this.colors.down,.7));}}
-        else if(p.colors){let old=null;for(let i=this.first;i<this.last;i++){if(!Number.isFinite(p.values[i])){old=null;continue;}const pt={x:this.toX(i),y:yy(p.values[i])};if(old)clippedLine(this.geometry,old.x,old.y,pt.x,pt.y,rgba(p.colors[i]||p.color),p.width||1.5,box);old=pt;}}
-        else this.plot(p.values,color,box,p.width||1.5,s.overlay?undefined:min,s.overlay?undefined:max);
+        else if(p.colors){let old=null;for(let i=this.first;i<this.last;i++){if(p.breaks?.[i])old=null;if(!Number.isFinite(p.values[i])){old=null;continue;}const pt={x:this.toX(i),y:yy(p.values[i])};if(old)clippedLine(this.geometry,old.x,old.y,pt.x,pt.y,rgba(p.colors[i]||p.color),p.width||1.5,box);old=pt;}}
+        else this.plot(p.values,color,box,p.width||1.5,s.overlay?undefined:min,s.overlay?undefined:max,p.breaks);
       }
       for(const fill of s.fills||[]){const a=s.plots.find(p=>p.id===fill.from),b=s.plots.find(p=>p.id===fill.to);if(!a||!b)continue;for(let i=this.first;i<this.last;i++)if(Number.isFinite(a.values[i])&&Number.isFinite(b.values[i])){const x=this.toX(i);if(x<0||x>box.w)continue;const y=clamp(yy(a.values[i]),box.y,box.y+box.h),z=clamp(yy(b.values[i]),box.y,box.y+box.h);this.geometry.rect(x-this.step/2,y,this.step,z-y,rgba(fill.color||'#578bfa22'));}}
       for(const background of s.backgrounds||[])for(let i=this.first;i<this.last;i++){const color=background.values[i];if(typeof color!=='string'||!/^#[a-f0-9]{6,8}$/i.test(color))continue;const x=this.toX(i);if(x<0||x>box.w)continue;if(background.kind==='bgcolor')this.geometry.rect(x-this.step/2,box.y,this.step,box.h,rgba(color,.18));else if(s.overlay&&this.bars[i]){const b=this.bars[i],y=clamp(this.toY(b.o),box.y,box.y+box.h),z=clamp(this.toY(b.c),box.y,box.y+box.h);this.geometry.rect(x-this.step*.35,y,this.step*.7,z-y||1,rgba(color));}}

@@ -1,3 +1,28 @@
+# Aureon Terminal v4.4 verification
+
+The current local source passes **648 automated tests** (591 inherited plus 57
+new session/decimation regressions), with no failures, skips or TODOs. The local
+workerless document-mode suite passes **10 groups**, zero page errors. It does
+not establish HTTP transport, browser-worker execution, downloads or persistence.
+Real-origin CI now also runs `scripts/verify-browser-v44.py` after all inherited
+Canvas/WebGPU suites. Its results must be inspected for the actual PR head;
+the existence of test code is not a passing result.
+
+New coverage includes winter/summer offsets, 23/25-hour and half-hour DST days,
+repeated/nonexistent local boundaries, overnight holiday identity, split segments,
+overrides, adjacent-day overlap, cache eviction and range limits; raw OHLCV
+validation, gaps, partial/future exclusion, conservation of OHLCV, weighted moments,
+zero volume, overflow, source alignment, prefix causality, confirmed opening and
+previous-session levels; rule round-trips, CSV safety, actual Node worker transport
+and line-envelope discontinuities inside decimation buckets.
+
+Browser cases exercise the applied calendar form, eight overlay plots, report
+views, CSV download, invalid settings, source and replay invalidation, isolated
+cancellation, draft templates/file import, mobile layout, and rule persistence
+without restoring stale results. CI uses fixture data only and no real orders.
+
+## Archived v4.3 verification
+
 # Aureon Terminal v4.3 verification
 
 Verification distinguishes executable source, local tests, real-origin browser tests, and external services. Archived earlier evidence is not proof that a new commit passes; the current commit's Actions runs are authoritative.

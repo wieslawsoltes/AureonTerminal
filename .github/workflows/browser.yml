@@ -45,6 +45,7 @@ jobs:
           python scripts/verify-browser-v3.py
           python scripts/verify-browser-v4.py
           python scripts/verify-browser-v44.py
+          python scripts/verify-browser-v45.py
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4

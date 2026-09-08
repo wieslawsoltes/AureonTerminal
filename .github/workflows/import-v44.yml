@@ -1,7 +1,7 @@
 name: Verify and publish v4.4 session analytics review branch
 on:
   push:
-    branches: [transfer/v44-verified-sessions]
+    branches: [transfer/v44-verified-sessions, transfer/v44-source-only]
 permissions:
   contents: write
 jobs:
@@ -22,20 +22,29 @@ jobs:
       - name: Reconstruct and validate exact implementation tree
         run: |
           set -euo pipefail
-          git checkout --detach e856aa5a0cd8cffc85e24a713cba5f6bec9a9378
+          BASE=e856aa5a0cd8cffc85e24a713cba5f6bec9a9378
+          git checkout --detach "$BASE"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           python3 "$RUNNER_TEMP/aureon-v44-apply.py" apply "$RUNNER_TEMP/aureon-v44.patch" "$RUNNER_TEMP/identity.json" | tee "$RUNNER_TEMP/validation.log"
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = e856aa5a0cd8cffc85e24a713cba5f6bec9a9378
-          git push origin HEAD:refs/heads/feature/v4.4-session-analytics
           git archive --format=zip HEAD > "$RUNNER_TEMP/source.zip"
-          git log -1 --format='%H %s' >> "$GITHUB_STEP_SUMMARY"
+          cp .github/workflows/browser.yml "$RUNNER_TEMP/browser-final.yml"
+          # The runner cannot modify workflow files. Publish only the application
+          # tree; the authenticated connector installs the verified workflow.
+          git checkout "$BASE" -- .github/workflows/browser.yml
+          TRANSPORT_TREE=$(git write-tree)
+          test "$TRANSPORT_TREE" = 1c2d55537cdc692724081a8d14907d65ddf7c443
+          TRANSPORT_COMMIT=$(printf '%s\n' 'feat: explicit trading calendars, causal session research and gap-aware charting' | git commit-tree "$TRANSPORT_TREE" -p "$BASE")
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$BASE"
+          git push origin "$TRANSPORT_COMMIT":refs/heads/transfer/v44-source-output
+          printf 'Source transport commit: %s\nComplete verified tree: d078a04bf9394ac7a0cd7950998913f2a094fbc9\n' "$TRANSPORT_COMMIT" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
           name: aureon-v44-verified-source
           path: |
             ${{ runner.temp }}/source.zip
             ${{ runner.temp }}/identity.json
             ${{ runner.temp }}/validation.log
+            ${{ runner.temp }}/browser-final.yml
           retention-days: 14

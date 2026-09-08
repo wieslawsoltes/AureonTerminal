@@ -1,0 +1,27 @@
+name: Export pinned source for session analytics round
+on:
+  push:
+    branches: [transfer/v44-source-export]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: e856aa5a0cd8cffc85e24a713cba5f6bec9a9378
+          fetch-depth: 0
+      - name: Export exact merged source without credentials
+        run: |
+          git archive --format=zip HEAD > "$RUNNER_TEMP/source.zip"
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/identity.txt"
+          sha256sum "$RUNNER_TEMP/source.zip" >> "$RUNNER_TEMP/identity.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aureon-v44-base
+          path: |
+            ${{ runner.temp }}/source.zip
+            ${{ runner.temp }}/identity.txt
+          retention-days: 7

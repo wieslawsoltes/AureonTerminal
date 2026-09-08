@@ -135,3 +135,15 @@ execution time.
 
 References: W3C WebGPU specification (device loss, error scopes, canvas
 configuration, texture copies and multisampling), https://www.w3.org/TR/webgpu/ .
+
+## Explicit session analysis (4.4)
+
+`TradingCalendar` normalizes immutable local-time rules and resolves bounded UTC
+windows through explicit `Intl` timezones. `analyzeTradingSessions` performs a
+sorted interval sweep over accepted closed source candles; raw data stays outside
+this derived research pipeline. It emits float64 plots, explicit path breaks,
+coverage metadata and segment-aligned aggregates. `SessionPanel` owns a dedicated
+`JobClient`; its generation/series/version/config/replay guards suppress stale
+completion and exports. Only normalized rules/settings enter workspace storage.
+`visitLineEnvelope` separates finite runs before extrema selection so visual LOD
+never invents connections across unknown intervals or session boundaries.

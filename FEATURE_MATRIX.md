@@ -1,4 +1,4 @@
-# Aureon Terminal 4.3 — implementation inventory
+# Aureon Terminal 4.4 — implementation inventory
 
 Aureon is an independent implementation. This document describes executable source and its actual interfaces, not certification, ownership of market-data rights, or equivalence to another product. Unsupported syntax and unavailable datasets fail explicitly. Tests and operating limits are documented separately in `TESTING.md` and `SECURITY.md`.
 
@@ -85,3 +85,22 @@ Renderer acquisition tolerates a transient null adapter with at most three
 requests per explicit initialization (40/80 ms backoff). Persistent failure stays
 on Canvas and requires user retry. Diagnostics retain the optional adapter device
 label and fallback flag; these labels are not performance or security evidence.
+
+## 4.4 explicit session research
+
+Implemented in `session-calendar.js`, `session-analysis.js` and the Pro tools
+Trading sessions panel: explicit IANA schedules, split/overnight segments,
+start-date closures/overrides, early closes, optional next-date trade labels, DST
+fold selection and gap rejection; bounded cached civil-to-UTC conversion; closed
+source resampling without filling missing intervals; eight causal session overlay
+plots; complete/missing session reports; dedicated-worker cancellation, immutable
+snapshot contexts, workspace rule persistence and calendar/CSV/JSON exports.
+The shared line-envelope decimator preserves explicit breaks and NaN gaps even
+inside a zoomed-out bucket.
+
+Limits: primary-chart manual research snapshots; 200,000 input bars, 3,660 local
+dates, 8 segments and 4,096 closure/override dates; source/target intervals at most
+one day. No maintained exchange holiday/auction/halt database, tick-exact VWAP,
+automatic execution on derived candles or historical calendar-vintage service.
+Templates do not imply exchange certification. See `docs/TRADING_SESSIONS.md`.
+The legacy UTC-bucket studies remain unchanged and retain their original meaning.

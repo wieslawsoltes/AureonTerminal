@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "Explicit overnight split example — no exchange calendar implied",
+  "timezone": "America/Chicago",
+  "weekdays": [0, 1, 2, 3, 4],
+  "segments": [
+    { "open": "18:00", "close": "23:00" },
+    { "open": "01:00", "close": "17:00", "openDay": 1 }
+  ],
+  "holidays": [],
+  "overrides": {},
+  "tradeDateOffset": 1,
+  "disambiguation": "reject"
+}

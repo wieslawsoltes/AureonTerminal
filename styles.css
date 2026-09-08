@@ -32,3 +32,5 @@ body.light{color-scheme:light;--bg:#ffffff;--panel:#f8f9fc;--header:#f5f7fb;--ho
 .screen-condition { display:inline-flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--border); border-radius:5px; font-size:12px; }
 #script-screen-status { overflow-wrap:anywhere; }
 #script-screen-status progress { width:min(220px,40vw); vertical-align:middle; margin-left:8px; }
+
+.session-research .pro-split{align-items:start}.session-research .panel-toolbar{flex-wrap:wrap}.session-research textarea{width:100%;box-sizing:border-box}.session-research .v2-form-grid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.session-research #session-analysis-status{overflow-wrap:anywhere}.session-research .pro-split>div,.session-research .pro-split>label{min-width:0}

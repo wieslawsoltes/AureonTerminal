@@ -1,0 +1,40 @@
+name: Verify and publish incremental realtime review source
+on:
+  push:
+    branches: [transfer/v45-verified-runtime]
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source transfer bytes
+        run: |
+          cp .github/import-v45/apply.py "$RUNNER_TEMP/aureon-v45-apply.py"
+          python3 "$RUNNER_TEMP/aureon-v45-apply.py" decode .github/import-v45 "$RUNNER_TEMP/aureon-v45.patch"
+      - name: Reconstruct and validate application source
+        run: |
+          set -euo pipefail
+          git checkout --detach ff2561fde264d5baf23c3f6807b1b82163a1236a
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 "$RUNNER_TEMP/aureon-v45-apply.py" apply "$RUNNER_TEMP/aureon-v45.patch" "$RUNNER_TEMP/identity.json" | tee "$RUNNER_TEMP/validation.log"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = ff2561fde264d5baf23c3f6807b1b82163a1236a
+          git push origin HEAD:refs/heads/transfer/v45-source-output
+          git archive --format=zip HEAD > "$RUNNER_TEMP/source.zip"
+          git log -1 --format='%H %s' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aureon-v45-verified-source
+          path: |
+            ${{ runner.temp }}/source.zip
+            ${{ runner.temp }}/identity.json
+            ${{ runner.temp }}/validation.log
+          retention-days: 7

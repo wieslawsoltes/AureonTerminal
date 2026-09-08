@@ -1,6 +1,6 @@
 {
   "name": "aureon-terminal",
-  "version": "4.4.0",
+  "version": "4.5.0",
   "private": true,
   "type": "module",
   "description": "WebGPU market workbench, bounded scripting, causal analytics, execution simulation and opt-in private services",
@@ -10,7 +10,8 @@
     "build": "node scripts/build-standalone.mjs",
     "check": "node scripts/check.mjs && npm test",
     "references": "node scripts/check-references.mjs",
-    "benchmark:statistics": "node scripts/benchmark-statistics.mjs"
+    "benchmark:statistics": "node scripts/benchmark-statistics.mjs",
+    "benchmark:realtime": "node scripts/benchmark-realtime.mjs"
   },
   "engines": {
     "node": ">=22.16.0"

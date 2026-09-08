@@ -1,4 +1,4 @@
-# Aureon Terminal 4.4
+# Aureon Terminal 4.5
 
 Plain HTML/CSS/JavaScript market workbench with native WebGPU geometry and an independent Canvas fallback. The application includes 26 chart styles, 84 configurable studies, 66 drawing tools, editable 16-chart layouts, bounded scripting, causal pattern scans, financial models and opt-in private services.
 
@@ -16,7 +16,19 @@ npm start
 # http://localhost:4173/?demo — explicitly synthetic deterministic demonstration
 ```
 
-`npm test` runs 546 numerical, protocol, worker, state-machine, security and private-service tests. `npm run build` regenerates `dist/AureonTerminal.html`, including both worker bundles. Build before testing a source archive that omits the distribution; bundle tests intentionally require the real generated worker code.
+`npm test` runs 732 numerical, protocol, worker, state-machine, security and private-service tests. `npm run build` regenerates `dist/AureonTerminal.html`, including both worker bundles. Build before testing a source archive that omits the distribution; bundle tests intentionally require the real generated worker code.
+
+## New in 4.5
+
+**Script editor → Plan realtime** reports whether the complete selected indicator can use a bounded incremental scalar-series graph. **Auto incremental**, **Incremental only**, and **Reference interpreter** make the execution choice explicit. Twenty existing technical functions have incremental kernels, with closed-history seeding, provisional root/scalar checkpoints and rollback. Unsupported mutable state, collections, graphics, functions or data requests use the original reference engine with a visible reason; forced incremental mode rejects them.
+
+The dedicated realtime worker sends one full seed followed by sequence-checked one/two-row tail patches. The editor reconstructs complete plot histories in reusable typed buffers without copying every numeric plot on each observation. Changing the source, dependencies, selected engine or replay context stops the old session. No strategy or brokerage orders are sent.
+
+Load the `streaming` example or `examples/incremental-trend.aureon`. See [Incremental runtime](docs/INCREMENTAL_RUNTIME.md) for the supported subset, ownership, rollback, protocol, budgets, fallback and benchmark scope. Batch scripts still use the reference interpreter.
+
+```sh
+npm run benchmark:realtime
+```
 
 ## New in 4.2
 
@@ -89,7 +101,7 @@ MIT licensed. Provider names identify optional integrations, not affiliation or 
 
 ## New in 4.1
 
-**Script editor → Realtime** starts an indicator-only worker session from the selected market history. Accepted trade observations retain `varip` state while ordinary state rolls back to the confirmed prefix. Stop/cancel, replay, context changes, authoritative history changes, reconnects and queue errors require an explicit restart. This is a bounded correctness-oriented re-evaluation engine, not a claim of incremental or exchange-tick throughput. No strategy order is sent from realtime mode.
+**Script editor → Realtime** starts an indicator-only worker session from the selected market history. Accepted trade observations retain `varip` state while ordinary state rolls back to the confirmed prefix. Stop/cancel, replay, context changes, authoritative history changes, reconnects and queue errors require an explicit restart. In 4.5, supported scalar-series indicators use incremental evaluation and tail transport; other source explicitly retains bounded reference re-evaluation. Neither path claims exchange-tick throughput. No strategy order is sent from realtime mode.
 
 **Shared drawing rooms** now save each unacknowledged operation in IndexedDB, scoped to account/room/symbol. Closing a tab no longer intentionally deletes that queue; explicitly rejoin the room to recover it. New tabs use independent replica identities. Acknowledgement removes only the exact operation IDs and contents returned by the server. Browser eviction, clearing site data or closing before a write commits can still lose edits; the UI reports unsaved recovery writes.
 
